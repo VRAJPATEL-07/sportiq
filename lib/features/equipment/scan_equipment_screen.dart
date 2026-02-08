@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'borrow_confirmation_screen.dart';
 
 class ScanEquipmentScreen extends StatelessWidget {
   const ScanEquipmentScreen({super.key});
@@ -38,10 +37,7 @@ class ScanEquipmentScreen extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () {
                   // Simulate scan success
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BorrowConfirmationScreen()),
-                  );
+                  Navigator.pushNamed(context, '/borrow_confirmation');
                 },
                 icon: const Icon(Icons.camera_alt),
                 label: const Text("Open Camera"),

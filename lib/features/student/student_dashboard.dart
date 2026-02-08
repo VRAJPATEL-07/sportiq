@@ -1,41 +1,118 @@
-import 'package:flutter/material.dart';
-import '../equipment/equipment_list.dart';
-import '../admin/admin_dashboard.dart';
-import 'my_borrowed_items_screen.dart';
+// ignore_for_file: use_build_context_synchronously
 
-class StudentDashboard extends StatelessWidget {
-  const StudentDashboard({super.key});
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../auth/auth_service_base.dart';
+
+class StudentDashboard extends StatefulWidget {
+  final VoidCallback? onToggleTheme;
+
+  const StudentDashboard({super.key, this.onToggleTheme});
+
+  @override
+  State<StudentDashboard> createState() => _StudentDashboardState();
+}
+
+class _StudentDashboardState extends State<StudentDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Welcome to SportiQ Dashboard!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<IAuthService>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Student Dashboard"),
+        centerTitle: true,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  '📚 Student',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, size: 40, color: Colors.blue),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.person, size: 40, color: Colors.blue),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              auth.current.userId ?? 'Student',
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              auth.current.userId ?? 'student@sportiq.com',
+                              style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    "Student Name",
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  Text(
-                    "student@email.com",
-                    style: TextStyle(color: Colors.white70),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      auth.current.role,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -52,10 +129,7 @@ class StudentDashboard extends StatelessWidget {
               title: const Text('Equipment'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EquipmentList()),
-                );
+                Navigator.pushNamed(context, '/equipment');
               },
             ),
             ListTile(
@@ -63,30 +137,60 @@ class StudentDashboard extends StatelessWidget {
               title: const Text('My Borrowed Items'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MyBorrowedItemsScreen()),
-                );
+                Navigator.pushNamed(context, '/my_borrowed');
               },
             ),
             ListTile(
-              leading: const Icon(Icons.admin_panel_settings),
-              title: const Text('Admin Panel'),
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings & Profile'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminDashboard()),
-                );
+                Navigator.pushNamed(context, '/profile');
               },
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.popUntil(context, (route) => route.isFirst);
+                showDialog(
+                  context: context,
+                  builder: (BuildContext dialogContext) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    title: const Text('Confirm Logout'),
+                    content: const Text('Are you sure you want to logout from SportiQ?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          await auth.logout();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('You have been logged out successfully'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          Future.delayed(const Duration(milliseconds: 800), () {
+                            if (mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                            }
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ],
@@ -123,10 +227,7 @@ class StudentDashboard extends StatelessWidget {
                     icon: Icons.inventory,
                     title: "View Equipment",
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const EquipmentList()),
-                      );
+                      Navigator.pushNamed(context, '/equipment');
                     },
                   ),
                   _buildActionCard(
@@ -134,21 +235,7 @@ class StudentDashboard extends StatelessWidget {
                     icon: Icons.library_books,
                     title: "My Borrowed Items",
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MyBorrowedItemsScreen()),
-                      );
-                    },
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.admin_panel_settings,
-                    title: "Admin Panel",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AdminDashboard()),
-                      );
+                      Navigator.pushNamed(context, '/my_borrowed');
                     },
                   ),
                   _buildActionCard(

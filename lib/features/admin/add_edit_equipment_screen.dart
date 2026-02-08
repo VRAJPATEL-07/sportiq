@@ -1,7 +1,14 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/equipment_provider.dart';
 
 class AddEditEquipmentScreen extends StatefulWidget {
-  const AddEditEquipmentScreen({super.key});
+  final String? equipmentId;
+  final Map<String, dynamic>? initialData;
+
+  const AddEditEquipmentScreen({super.key, this.equipmentId, this.initialData});
 
   @override
   State<AddEditEquipmentScreen> createState() => _AddEditEquipmentScreenState();
@@ -10,6 +17,7 @@ class AddEditEquipmentScreen extends StatefulWidget {
 class _AddEditEquipmentScreenState extends State<AddEditEquipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _categoryController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _quantityController = TextEditingController();
   final _penaltyController = TextEditingController();
@@ -17,10 +25,25 @@ class _AddEditEquipmentScreenState extends State<AddEditEquipmentScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _categoryController.dispose();
     _descriptionController.dispose();
     _quantityController.dispose();
     _penaltyController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.initialData;
+    if (data != null) {
+      _nameController.text = (data['name'] ?? '').toString();
+      _categoryController.text = (data['category'] ?? '').toString();
+      _descriptionController.text = (data['description'] ?? '').toString();
+      _quantityController.text = (data['quantity'] ?? '').toString();
+      // penalty may not exist in Firestore schema; keep optional
+      _penaltyController.text = (data['penalty'] ?? '').toString();
+    }
   }
 
   @override
@@ -57,6 +80,21 @@ class _AddEditEquipmentScreenState extends State<AddEditEquipmentScreen> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter equipment name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _categoryController,
+                decoration: const InputDecoration(
+                  labelText: "Category",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter category';
                   }
                   return null;
                 },
@@ -151,9 +189,45 @@ class _AddEditEquipmentScreenState extends State<AddEditEquipmentScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveEquipment,
-                      child: const Text("Save Equipment"),
+                    child: Builder(
+                      builder: (builderContext) {
+                        return Consumer<EquipmentProvider>(builder: (context, provider, _) {
+                          final isEdit = widget.equipmentId != null;
+                          return ElevatedButton(
+                            onPressed: provider.isLoading
+                                ? null
+                                : () async {
+                                    if (!_formKey.currentState!.validate()) return;
+                                    try {
+                                      if (isEdit) {
+                                        await provider.updateEquipment(
+                                          id: widget.equipmentId!,
+                                          name: _nameController.text.trim(),
+                                          category: _categoryController.text.trim(),
+                                          quantity: int.parse(_quantityController.text.trim()),
+                                        );
+                                      } else {
+                                        await provider.addEquipment(
+                                          name: _nameController.text.trim(),
+                                          category: _categoryController.text.trim(),
+                                          quantity: int.parse(_quantityController.text.trim()),
+                                        );
+                                      }
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(isEdit ? 'Equipment updated' : 'Equipment added')),
+                                      );
+                                      if (!mounted) return;
+                                      Navigator.pop(context);
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e'), backgroundColor: Colors.red));
+                                    }
+                                  },
+                            child: provider.isLoading ? const CircularProgressIndicator() : Text(isEdit ? 'Update Equipment' : 'Save Equipment'),
+                          );
+                        });
+                      },
                     ),
                   ),
                 ],

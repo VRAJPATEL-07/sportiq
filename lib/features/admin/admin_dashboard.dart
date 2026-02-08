@@ -1,14 +1,146 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
-import 'add_edit_equipment_screen.dart';
+import 'package:provider/provider.dart';
+import '../../auth/auth_service_base.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<IAuthService>(context);
+    // Guard: ensure only admins can view this screen
+    if (auth.current.role != 'admin') {
+      Future.microtask(() => Navigator.pushReplacementNamed(context, '/unauthorized'));
+      return const SizedBox.shrink();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text("Admin Dashboard"),
+        centerTitle: true,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  '👤 Admin',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.admin_panel_settings, size: 40, color: Colors.blue),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          auth.current.userId ?? 'Admin',
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          auth.current.userId ?? 'admin@sportiq.com',
+                          style: const TextStyle(color: Colors.white70),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            auth.current.role,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text('Dashboard'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Add Equipment'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/add_equipment');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Manage Users'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/manage_users');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings & Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/profile');
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(context);
+                await auth.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              },
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -39,10 +171,7 @@ class AdminDashboard extends StatelessWidget {
                     title: "Add Equipment",
                     subtitle: "Add new sports equipment to the system",
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AddEditEquipmentScreen()),
-                      );
+                      Navigator.pushNamed(context, '/add_equipment');
                     },
                   ),
                   _buildManagementTile(
@@ -50,21 +179,19 @@ class AdminDashboard extends StatelessWidget {
                     icon: Icons.edit,
                     title: "Manage Equipment",
                     subtitle: "Edit or remove existing equipment",
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Manage Equipment feature coming soon!")),
-                      );
-                    },
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Manage Equipment feature coming soon!")),
+                        );
+                      },
                   ),
                   _buildManagementTile(
                     context,
                     icon: Icons.people,
-                    title: "Manage Students",
-                    subtitle: "View and manage student accounts",
+                    title: "Manage Users",
+                    subtitle: "Create and manage student/admin accounts",
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Manage Students feature coming soon!")),
-                      );
+                      Navigator.pushNamed(context, '/manage_users');
                     },
                   ),
                   _buildManagementTile(
@@ -101,8 +228,8 @@ class AdminDashboard extends StatelessWidget {
             const SnackBar(content: Text("Quick add feature coming soon!")),
           );
         },
-        child: const Icon(Icons.add),
         tooltip: 'Quick Add',
+        child: const Icon(Icons.add),
       ),
     );
   }

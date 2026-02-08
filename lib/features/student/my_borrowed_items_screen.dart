@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../widgets/custom_card.dart';
-import 'penalty_details_screen.dart';
 
 class MyBorrowedItemsScreen extends StatelessWidget {
   const MyBorrowedItemsScreen({super.key});
@@ -121,10 +119,7 @@ class MyBorrowedItemsScreen extends StatelessWidget {
                   const Text("Penalty: \$10.00", style: TextStyle(color: Colors.red)),
                   TextButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PenaltyDetailsScreen()),
-                      );
+                      Navigator.pushNamed(context, '/penalty_details');
                     },
                     child: const Text("View Details"),
                   ),

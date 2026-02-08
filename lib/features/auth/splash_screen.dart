@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -17,13 +16,10 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigateToLogin();
   }
 
-  _navigateToLogin() async {
-    await Future.delayed(const Duration(seconds: 3), () {});
+  Future<void> _navigateToLogin() async {
+    await Future.delayed(const Duration(seconds: 2), () {});
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: widget.onToggleTheme)),
-      );
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -61,6 +57,14 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 40),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Initializing...",
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
             ),
           ],
         ),
