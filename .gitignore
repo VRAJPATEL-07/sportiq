@@ -44,4 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 # Sensitive Firebase configuration
-lib/firebase_options.dart
+# lib/firebase_options.dart (tracked by repo) — uncomment to ignore again
