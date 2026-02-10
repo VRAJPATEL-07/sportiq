@@ -28,7 +28,9 @@ class AuthService extends IAuthService {
   final StreamController<AuthState> _controller = StreamController<AuthState>.broadcast();
   AuthState _state = AuthState.signedOut;
 
+  @override
   Stream<AuthState> get stream => _controller.stream;
+  @override
   AuthState get current => _state;
 
   Future<void> _onAuthStateChanged(User? user) async {
@@ -62,6 +64,8 @@ class AuthService extends IAuthService {
             'status': 'active',
           });
           role = 'student';
+          // Ensure role is set in Firestore
+          await _firestore.collection('users').doc(user.uid).update({'role': 'student'});
         } catch (e) {
           print('ERROR: Could not create user document: $e');
           // Still continue with student role even if document creation fails
@@ -69,19 +73,32 @@ class AuthService extends IAuthService {
         }
       }
 
-      _state = AuthState(userId: user.uid, role: role, loggedIn: true);
+      _state = AuthState(
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName ?? 'User',
+        role: role,
+        loggedIn: true,
+      );
       _controller.add(_state);
       notifyListeners();
     } catch (e) {
       print('ERROR in _onAuthStateChanged: $e');
       // If Firestore read fails, default to student but still signed in.
-      _state = AuthState(userId: user.uid, role: 'student', loggedIn: true);
+      _state = AuthState(
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName ?? 'User',
+        role: 'student',
+        loggedIn: true,
+      );
       _controller.add(_state);
       notifyListeners();
     }
   }
 
   /// Login with email & password, then fetch role from Firestore.
+  @override
   Future<AuthState> login({required String email, required String password}) async {
     try {
       print('DEBUG: Attempting login for email: $email');
@@ -117,14 +134,16 @@ class AuthService extends IAuthService {
     } on FirebaseAuthException catch (e) {
       print('DEBUG: FirebaseAuthException: ${e.code} - ${e.message}');
       rethrow;
-    } catch (e) {
+    } catch (e, st) {
       print('DEBUG: General exception during login: $e');
-      throw Exception('Login failed: An internal error has occurred. ${e.toString()}');
+      print(st);
+      throw Exception('Login failed: An internal error has occurred. (${e.runtimeType}) ${e.toString()}');
     }
   }
 
   /// Login with Google - automatically creates account if doesn't exist with 'student' role
   /// NOTE: Google Sign-In requires platform-specific OAuth configuration
+  @override
   Future<AuthState> loginWithGoogle() async {
     try {
       print('DEBUG: Google Sign-In button clicked...');
@@ -148,6 +167,7 @@ class AuthService extends IAuthService {
   }
 
   /// Register a new user and create a Firestore user doc with a role (default student).
+  @override
   Future<AuthState> register({required String name, required String email, required String password, String role = 'student'}) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -181,6 +201,7 @@ class AuthService extends IAuthService {
     }
   }
 
+  @override
   Future<void> guestLogin() async {
     try {
       final cred = await _auth.signInAnonymously();
@@ -188,7 +209,13 @@ class AuthService extends IAuthService {
       if (user == null) throw FirebaseAuthException(code: 'NO_USER', message: 'No user returned');
 
       // For anonymous users, we don't create a Firestore doc. Treat as student for UI only.
-      _state = AuthState(userId: user.uid, role: 'student', loggedIn: true);
+      _state = AuthState(
+        userId: user.uid,
+        email: user.email,
+        displayName: 'Anonymous User',
+        role: 'student',
+        loggedIn: true,
+      );
       _controller.add(_state);
       notifyListeners();
     } catch (e) {
@@ -196,6 +223,7 @@ class AuthService extends IAuthService {
     }
   }
 
+  @override
   Future<void> logout() async {
     await _auth.signOut();
     _state = AuthState.signedOut;
@@ -203,6 +231,7 @@ class AuthService extends IAuthService {
     notifyListeners();
   }
 
+  @override
   Future<void> sendPasswordResetEmail({required String email}) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'core/themes/app_theme.dart';
 import 'features/auth/splash_screen.dart';
 import 'auth/auth_service_base.dart';
@@ -41,12 +42,15 @@ class _SportiQAppState extends State<SportiQApp> {
     return Consumer<IAuthService>(builder: (context, auth, _) {
       Route<dynamic> onGenerate(RouteSettings settings) {
         // Role guard helper
+        // Debug: log current auth state when routing
+        print('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
         final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users'};
-        final requiresStudent = <String>{'/student', '/my_borrowed', '/profile'};
-        final requiresLogin = <String>{'/equipment', '/scan', '/borrow_confirmation', '/borrow_form', '/penalty_details'};
+        final requiresStudent = <String>{'/student', '/my_borrowed'};
+        final requiresLogin = <String>{'/equipment', '/scan', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile'};
 
         if (requiresAdmin.contains(settings.name)) {
-          if (!auth.current.loggedIn) {
+          // Use FirebaseAuth directly for logged-in check to avoid transient AuthState timing issues
+          if (FirebaseAuth.instance.currentUser == null) {
             return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
           }
           if (auth.current.role != 'admin') {
@@ -54,7 +58,7 @@ class _SportiQAppState extends State<SportiQApp> {
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresStudent.contains(settings.name)) {
-          if (!auth.current.loggedIn) {
+          if (FirebaseAuth.instance.currentUser == null) {
             return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
           }
           if (auth.current.role != 'student') {
@@ -62,7 +66,7 @@ class _SportiQAppState extends State<SportiQApp> {
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresLogin.contains(settings.name)) {
-          if (!auth.current.loggedIn) {
+          if (FirebaseAuth.instance.currentUser == null) {
             return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
           }
         }

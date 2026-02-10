@@ -11,11 +11,12 @@ class DefaultFirebaseOptions {
     if (kIsWeb) return web;
     if (Platform.isAndroid) return android;
     if (Platform.isIOS || Platform.isMacOS) return ios;
+    if (Platform.isWindows) return windows;
     return android;
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_YOUR_API_KEY',
+    apiKey: 'AIzaSyBVyd15alev6WudhDamrDrgV3czddGypPE',
     appId: '1:443453980990:android:1ec8b463d02c7d7a3d2c6f',
     messagingSenderId: '443453980990',
     projectId: 'sportiq-824eb',
@@ -23,7 +24,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_YOUR_API_KEY',
+    apiKey: 'AIzaSyBVyd15alev6WudhDamrDrgV3czddGypPE',
     appId: '1:443453980990:ios:c8db69165a94ec733d2c6f',
     messagingSenderId: '443453980990',
     projectId: 'sportiq-824eb',
@@ -31,12 +32,21 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_YOUR_API_KEY',
+    apiKey: 'AIzaSyBVyd15alev6WudhDamrDrgV3czddGypPE',
     appId: '1:443453980990:web:88f18f0d8644f6f33d2c6f',
     messagingSenderId: '443453980990',
     projectId: 'sportiq-824eb',
     authDomain: 'sportiq-824eb.firebaseapp.com',
     storageBucket: 'sportiq-824eb.appspot.com',
-    measurementId: 'G-REPLACE_ME',
+    measurementId: 'G-LVRQJKKQSX',
+  );
+
+  // Windows desktop configuration
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBVyd15alev6WudhDamrDrgV3czddGypPE',
+    appId: '1:443453980990:windows:aed17a17d08679e33d2c6f',
+    messagingSenderId: '443453980990',
+    projectId: 'sportiq-824eb',
+    storageBucket: 'sportiq-824eb.appspot.com',
   );
 }

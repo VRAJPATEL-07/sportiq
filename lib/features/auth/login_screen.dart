@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
+import '../student/student_dashboard.dart';
+import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -99,10 +101,10 @@ class _LoginScreenState extends State<LoginScreen> {
         print('DEBUG: Login successful. Auth state role: ${authState.role}');
         if (authState.role == 'admin') {
           print('DEBUG: Redirecting to admin dashboard');
-          Navigator.pushReplacementNamed(context, '/admin');
+          Navigator.pushReplacement(MaterialPageRoute(builder: (_) => AdminDashboard()));
         } else if (authState.role == 'student') {
           print('DEBUG: Redirecting to student dashboard');
-          Navigator.pushReplacementNamed(context, '/student');
+          Navigator.pushReplacement(MaterialPageRoute(builder: (_) => StudentDashboard(onToggleTheme: widget.onToggleTheme)));
         } else {
           print('DEBUG: Unknown role, redirecting to unauthorized');
           // Unknown role — show unauthorized
@@ -139,7 +141,13 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}'), backgroundColor: Colors.red));
+      final raw = e.toString();
+      String userMessage = raw;
+      final marker = 'Login failed:';
+      if (raw.contains(marker)) {
+        userMessage = raw.split(marker).last.trim();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $userMessage'), backgroundColor: Colors.red));
     }
   }
 

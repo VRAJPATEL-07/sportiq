@@ -70,13 +70,13 @@ class AdminDashboard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          auth.current.userId ?? 'Admin',
-                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          auth.current.displayName ?? 'Admin',
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          auth.current.userId ?? 'admin@sportiq.com',
+                          auth.current.email ?? 'admin@sportiq.com',
                           style: const TextStyle(color: Colors.white70),
                           overflow: TextOverflow.ellipsis,
                         ),

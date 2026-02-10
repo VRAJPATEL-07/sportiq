@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
-import '../../providers/equipment_provider.dart';
 
 class EquipmentList extends StatefulWidget {
   const EquipmentList({super.key});

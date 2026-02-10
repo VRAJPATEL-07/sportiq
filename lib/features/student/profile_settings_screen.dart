@@ -150,7 +150,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      auth.current.userId ?? 'Guest User',
+                      auth.current.displayName ?? 'User',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -159,7 +159,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      auth.current.userId ?? 'guest@sportiq.com',
+                      auth.current.email ?? 'user@sportiq.com',
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white70,

@@ -185,7 +185,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: const InputDecoration(
                         labelText: 'Role',
                         border: OutlineInputBorder(),

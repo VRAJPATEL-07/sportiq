@@ -87,13 +87,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              auth.current.userId ?? 'Student',
+                              auth.current.displayName ?? 'Student',
                               style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              auth.current.userId ?? 'student@sportiq.com',
+                              auth.current.email ?? 'student@sportiq.com',
                               style: const TextStyle(color: Colors.white70, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
