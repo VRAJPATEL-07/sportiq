@@ -99,17 +99,17 @@ class _LoginScreenState extends State<LoginScreen> {
       Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) return;
         print('DEBUG: Login successful. Auth state role: ${authState.role}');
-        if (authState.role == 'admin') {
-          print('DEBUG: Redirecting to admin dashboard');
-          Navigator.pushReplacement(MaterialPageRoute(builder: (_) => AdminDashboard()));
-        } else if (authState.role == 'student') {
-          print('DEBUG: Redirecting to student dashboard');
-          Navigator.pushReplacement(MaterialPageRoute(builder: (_) => StudentDashboard(onToggleTheme: widget.onToggleTheme)));
-        } else {
-          print('DEBUG: Unknown role, redirecting to unauthorized');
-          // Unknown role — show unauthorized
-          Navigator.pushReplacementNamed(context, '/unauthorized');
-        }
+                                if (authState.role == 'admin') {
+                                  print('DEBUG: Redirecting to admin dashboard');
+                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AdminDashboard()));
+                                } else if (authState.role == 'student') {
+                                  print('DEBUG: Redirecting to student dashboard');
+                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StudentDashboard(onToggleTheme: widget.onToggleTheme)));
+                                } else {
+                                  print('DEBUG: Unknown role, redirecting to unauthorized');
+                                  // Unknown role — show unauthorized
+                                  Navigator.pushReplacementNamed(context, '/unauthorized');
+                                }
       });
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
