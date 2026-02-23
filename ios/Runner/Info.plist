@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- LAB 8: Camera permission for QR scanner -->
+	<key>NSCameraUsageDescription</key>
+	<string>SportiQ needs camera access to scan equipment QR codes</string>
+	<!-- LAB 8: Notification permission (iOS 10+) -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 </dict>
 </plist>

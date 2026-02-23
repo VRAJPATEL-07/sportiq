@@ -17,7 +17,10 @@ import 'features/student/my_borrowed_items_screen.dart';
 import 'features/student/profile_settings_screen.dart';
 import 'features/equipment/borrow_equipment_form.dart';
 import 'features/student/penalty_details_screen.dart';
+import 'features/notifications/notification_test_screen.dart';
+import 'features/notifications/notification_screen.dart';
 import 'routes/unauthorized_screen.dart';
+import 'core/navigation.dart';
 
 class SportiQApp extends StatefulWidget {
   const SportiQApp({super.key});
@@ -46,23 +49,25 @@ class _SportiQAppState extends State<SportiQApp> {
         print('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
         final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users'};
         final requiresStudent = <String>{'/student', '/my_borrowed'};
-        final requiresLogin = <String>{'/equipment', '/scan', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile'};
+        final requiresLogin = <String>{'/equipment', '/scan', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications'};
 
         if (requiresAdmin.contains(settings.name)) {
-          // Use FirebaseAuth directly for logged-in check to avoid transient AuthState timing issues
+          // Use FirebaseAuth directly for logged-in check
           if (FirebaseAuth.instance.currentUser == null) {
             return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
           }
+          // Give the auth service a moment to update after login
           if (auth.current.role != 'admin') {
-            print('DEBUG: Student tried to access admin route ${settings.name}');
+            print('DEBUG: Non-admin tried to access admin route ${settings.name}. Current role: ${auth.current.role}');
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresStudent.contains(settings.name)) {
           if (FirebaseAuth.instance.currentUser == null) {
             return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
           }
-          if (auth.current.role != 'student') {
-            print('DEBUG: Admin tried to access student route ${settings.name}');
+          // Allow student access, also allow admin to access student routes for testing
+          if (auth.current.role != 'student' && auth.current.role != 'admin') {
+            print('DEBUG: Non-student/admin tried to access student route ${settings.name}. Current role: ${auth.current.role}');
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresLogin.contains(settings.name)) {
@@ -79,7 +84,10 @@ class _SportiQAppState extends State<SportiQApp> {
           case '/register':
             return MaterialPageRoute(builder: (_) => RegisterScreen(onToggleTheme: _toggleTheme));
           case '/student':
-            return MaterialPageRoute(builder: (_) => StudentDashboard(onToggleTheme: _toggleTheme));
+            return MaterialPageRoute(
+              builder: (_) => StudentDashboard(onToggleTheme: _toggleTheme),
+              settings: settings,
+            );
           case '/admin':
             return MaterialPageRoute(builder: (_) => AdminDashboard());
           case '/equipment':
@@ -107,7 +115,18 @@ class _SportiQAppState extends State<SportiQApp> {
           case '/penalty_details':
             return MaterialPageRoute(builder: (_) => PenaltyDetailsScreen());
           case '/profile':
-            return MaterialPageRoute(builder: (_) => ProfileSettingsScreen(onToggleTheme: _toggleTheme));
+            return MaterialPageRoute(
+              builder: (_) => ProfileSettingsScreen(onToggleTheme: _toggleTheme),
+              settings: settings,
+            );
+          case '/notifications':
+            return MaterialPageRoute(
+              builder: (_) => const NotificationScreen(),
+              settings: settings,
+            );
+          case '/notification_test':
+            // LAB 8: Test screen for notifications and animations
+            return MaterialPageRoute(builder: (_) => const NotificationTestScreen());
           case '/unauthorized':
             return MaterialPageRoute(builder: (_) => UnauthorizedScreen());
           default:
@@ -117,6 +136,7 @@ class _SportiQAppState extends State<SportiQApp> {
 
       return MaterialApp(
         title: 'SportiQ',
+        navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         darkTheme: darkTheme,

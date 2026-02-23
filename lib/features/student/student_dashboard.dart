@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import '../../providers/notification_provider.dart';
+import '../../widgets/notification_bell_button.dart';
 
 class StudentDashboard extends StatefulWidget {
   final VoidCallback? onToggleTheme;
@@ -17,8 +19,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   void initState() {
     super.initState();
+    
+    // Start notification timer when student dashboard is loaded
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
+        context.read<NotificationProvider>().startNotificationTimer();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Welcome to SportiQ Dashboard!'),
@@ -31,6 +36,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   @override
+  void dispose() {
+    // Stop notification timer when leaving the dashboard
+    context.read<NotificationProvider>().stopNotificationTimer();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
     return Scaffold(
@@ -39,6 +51,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
         centerTitle: true,
         elevation: 0,
         actions: [
+          const NotificationBellButton(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Center(
@@ -249,6 +262,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       );
                     },
                   ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.notifications_active,
+                    title: "Test Notifications",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/notification_test');
+                    },
+                  ),
                 ],
               ),
             ),
@@ -259,27 +280,37 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Widget _buildActionCard(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 48, color: Colors.blue),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.95, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: Card(
+            elevation: 4,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 48, color: Colors.blue),
+                    const SizedBox(height: 10),
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

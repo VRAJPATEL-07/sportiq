@@ -7,6 +7,10 @@ import 'firebase_options.dart';
 import 'auth/auth_service.dart';
 import 'auth/auth_service_base.dart';
 import 'providers/equipment_provider.dart';
+import 'providers/notification_provider.dart';
+import 'core/navigation.dart';
+import 'services/notification_service.dart';
+import 'services/local_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +82,21 @@ void main() async {
 
   // Firebase initialized successfully -> run the real app with real providers
   print('Starting SportiQ app...');
+  
+  // Initialize local notifications (for static timer-based notifications)
+  try {
+    await LocalNotificationService.instance.initialize();
+  } catch (e) {
+    print('Warning: LocalNotificationService init failed: $e');
+  }
+  
+  // Initialize Firebase notifications (Lab 8) and pass navigator key for tap navigation
+  try {
+    await NotificationService.instance.initialize(appNavigatorKey);
+  } catch (e) {
+    print('Warning: NotificationService init failed: $e');
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -86,6 +105,11 @@ void main() async {
         ),
         ChangeNotifierProvider.value(
           value: EquipmentProvider.instance,
+        ),
+        ChangeNotifierProvider(
+          create: (context) => NotificationProvider(
+            notificationService: LocalNotificationService.instance,
+          ),
         ),
       ],
       child: const SportiQApp(),

@@ -9,18 +9,28 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _controller.forward();
     _navigateToLogin();
   }
 
   Future<void> _navigateToLogin() async {
-    await Future.delayed(const Duration(seconds: 2), () {});
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,45 +38,48 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Colors.blue,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.sports_soccer,
-              size: 100,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "SportiQ",
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.sports_soccer,
+                size: 100,
                 color: Colors.white,
               ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Smart Sports Equipment Management",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
+              const SizedBox(height: 20),
+              const Text(
+                "SportiQ",
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Initializing...",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white70,
+              const SizedBox(height: 10),
+              const Text(
+                "Smart Sports Equipment Management",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+              const SizedBox(height: 40),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Initializing...",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

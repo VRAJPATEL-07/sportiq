@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'qr_scanner_screen.dart';
+import 'scan_history_screen.dart';
 
 class ScanEquipmentScreen extends StatelessWidget {
   const ScanEquipmentScreen({super.key});
@@ -36,8 +38,7 @@ class ScanEquipmentScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // Simulate scan success
-                  Navigator.pushNamed(context, '/borrow_confirmation');
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen()));
                 },
                 icon: const Icon(Icons.camera_alt),
                 label: const Text("Open Camera"),
@@ -47,13 +48,27 @@ class ScanEquipmentScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Manual entry feature coming soon!")),
-                );
-              },
-              child: const Text("Enter Code Manually"),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Manual entry feature coming soon!")),
+                      );
+                    },
+                    child: const Text("Enter Code Manually"),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ScanHistoryScreen()));
+                    },
+                    child: const Text('History'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

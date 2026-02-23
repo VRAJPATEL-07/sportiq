@@ -90,6 +90,85 @@ class EquipmentProvider extends ChangeNotifier {
     }
   }
 
+  /// Find equipment by a scanned QR value. The QR value is expected to match
+  /// either the document id, an `equipmentId` field, or `qrCodeValue` field.
+  Future<Map<String, dynamic>?> findByQrValue(String qrValue) async {
+    // First try local cache
+    try {
+      final cached = _items.firstWhere((m) {
+        final eqId = m['equipmentId']?.toString();
+        final qr = m['qrCodeValue']?.toString();
+        final docId = m['id']?.toString();
+        return qrValue == eqId || qrValue == qr || qrValue == docId;
+      }, orElse: () => {});
+      if (cached.isNotEmpty) return Map<String, dynamic>.from(cached);
+    } catch (_) {}
+
+    // Fallback to Firestore query
+    try {
+      // Try by equipmentId
+      final byEquip = await _firestore.collection('equipment').where('equipmentId', isEqualTo: qrValue).limit(1).get();
+      if (byEquip.docs.isNotEmpty) {
+        final d = byEquip.docs.first;
+        final data = Map<String, dynamic>.from(d.data());
+        data['id'] = d.id;
+        return data;
+      }
+
+      // Try by qrCodeValue
+      final byQr = await _firestore.collection('equipment').where('qrCodeValue', isEqualTo: qrValue).limit(1).get();
+      if (byQr.docs.isNotEmpty) {
+        final d = byQr.docs.first;
+        final data = Map<String, dynamic>.from(d.data());
+        data['id'] = d.id;
+        return data;
+      }
+
+      // Try matching document id
+      final doc = await _firestore.collection('equipment').doc(qrValue).get();
+      if (doc.exists) {
+        final data = Map<String, dynamic>.from(doc.data()!);
+        data['id'] = doc.id;
+        return data;
+      }
+    } catch (e) {
+      rethrow;
+    }
+    return null;
+  }
+
+  /// Convenience wrapper to update only status field.
+  Future<void> updateStatus(String id, String status) async {
+    await updateEquipment(id: id, status: status);
+  }
+
+  /// Log a scan event to Firestore for audit/history.
+  Future<void> logScan({required String equipmentId, required String scannedBy, required String rawValue, String action = 'view'}) async {
+    try {
+      await _firestore.collection('scan_history').add({
+        'equipmentId': equipmentId,
+        'scannedBy': scannedBy,
+        'rawValue': rawValue,
+        'action': action,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Stream of recent scan history entries. Consumers can listen to this to
+  /// display recent scans.
+  Stream<List<Map<String, dynamic>>> scanHistoryStream({int limit = 50}) {
+    return _firestore.collection('scan_history').orderBy('timestamp', descending: true).limit(limit).snapshots().map((snap) {
+      return snap.docs.map((d) {
+        final m = Map<String, dynamic>.from(d.data());
+        m['id'] = d.id;
+        return m;
+      }).toList();
+    });
+  }
+
   @override
   void dispose() {
     _sub?.cancel();

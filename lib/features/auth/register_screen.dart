@@ -21,7 +21,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  String _selectedRole = 'student'; // Default role
+  // Role is fixed to 'student' for registrations. Admins must be assigned manually in Firestore.
+  final String _selectedRole = 'student';
 
   @override
   void dispose() {
@@ -156,81 +157,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // ROLE SELECTION - PROMINENT
+                // Note: registration always creates a Student account.
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue.withOpacity(0.5)),
-                    borderRadius: BorderRadius.circular(8),
                     color: Colors.blue.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '👤 Account Type',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() => _selectedRole = 'student');
-                                print('DEBUG: Selected role: student');
-                              },
-                              icon: const Icon(Icons.school),
-                              label: const Text('Student'),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: _selectedRole == 'student'
-                                    ? Colors.blue.withOpacity(0.2)
-                                    : Colors.transparent,
-                                side: BorderSide(
-                                  color: _selectedRole == 'student' ? Colors.blue : Colors.grey,
-                                  width: _selectedRole == 'student' ? 2 : 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() => _selectedRole = 'admin');
-                                print('DEBUG: Selected role: admin');
-                              },
-                              icon: const Icon(Icons.admin_panel_settings),
-                              label: const Text('Admin'),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: _selectedRole == 'admin'
-                                    ? Colors.orange.withOpacity(0.2)
-                                    : Colors.transparent,
-                                side: BorderSide(
-                                  color: _selectedRole == 'admin' ? Colors.orange : Colors.grey,
-                                  width: _selectedRole == 'admin' ? 2 : 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _selectedRole == 'admin'
-                            ? '🔐 Admin users can manage equipment and other users'
-                            : '📚 Student users can browse and borrow equipment',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    'Accounts created here are Student accounts by default. Admins must be assigned manually in Firestore by an existing admin.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
                 const SizedBox(height: 24),

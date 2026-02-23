@@ -1,4 +1,6 @@
 // Placeholder Firebase configuration file.
+// This project strictly uses Firebase Spark Plan (Free Tier).
+// No billing enabled. No paid services used.
 // Replace these values by running the FlutterFire CLI (`flutterfire configure`) or
 // by providing real Firebase config values for each platform.
 

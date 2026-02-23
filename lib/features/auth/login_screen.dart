@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
-import '../student/student_dashboard.dart';
-import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -26,10 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    
     super.dispose();
   }
 
@@ -96,20 +96,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      Future.delayed(const Duration(milliseconds: 400), () {
+      Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
         print('DEBUG: Login successful. Auth state role: ${authState.role}');
-                                if (authState.role == 'admin') {
-                                  print('DEBUG: Redirecting to admin dashboard');
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AdminDashboard()));
-                                } else if (authState.role == 'student') {
-                                  print('DEBUG: Redirecting to student dashboard');
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StudentDashboard(onToggleTheme: widget.onToggleTheme)));
-                                } else {
-                                  print('DEBUG: Unknown role, redirecting to unauthorized');
-                                  // Unknown role — show unauthorized
-                                  Navigator.pushReplacementNamed(context, '/unauthorized');
-                                }
+        if (authState.role == 'admin') {
+          print('DEBUG: Redirecting to admin dashboard via named route');
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else if (authState.role == 'student') {
+          print('DEBUG: Redirecting to student dashboard via named route');
+          Navigator.pushReplacementNamed(context, '/student');
+        } else {
+          print('DEBUG: Unknown role, redirecting to unauthorized');
+          Navigator.pushReplacementNamed(context, '/unauthorized');
+        }
       });
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);

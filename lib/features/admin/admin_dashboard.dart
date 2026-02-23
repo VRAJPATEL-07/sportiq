@@ -3,9 +3,35 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import '../../providers/notification_provider.dart';
+import '../../widgets/notification_bell_button.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Start notification timer when admin dashboard is loaded
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        context.read<NotificationProvider>().startNotificationTimer();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Stop notification timer when leaving the dashboard
+    context.read<NotificationProvider>().stopNotificationTimer();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +47,7 @@ class AdminDashboard extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         actions: [
+          const NotificationBellButton(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Center(
