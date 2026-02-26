@@ -27,6 +27,7 @@ class AppRoutes {
   static const String scan = '/scan';
   static const String borrowConfirmation = '/borrow_confirmation';
   static const String borrowForm = '/borrow_form';
+  static const String equipmentDetail = '/equipment_detail';
 
   // Admin routes
   static const String adminDashboard = '/admin';
@@ -42,6 +43,7 @@ class AppRoutes {
     scan,
     borrowConfirmation,
     borrowForm,
+    equipmentDetail,
     penaltyDetails,
     profile,
     studentDashboard,

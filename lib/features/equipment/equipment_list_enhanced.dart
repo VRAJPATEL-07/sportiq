@@ -407,7 +407,7 @@ class _EquipmentListState extends State<EquipmentList> {
           ],
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () => _showEquipmentDetails(equipment),
+        onTap: () => Navigator.pushNamed(context, '/equipment_detail', arguments: {'equipment': equipment}),
       ),
     );
   }

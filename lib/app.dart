@@ -16,6 +16,7 @@ import 'features/equipment/borrow_confirmation_screen.dart';
 import 'features/student/my_borrowed_items_screen.dart';
 import 'features/student/profile_settings_screen.dart';
 import 'features/equipment/borrow_equipment_form.dart';
+import 'features/equipment/equipment_detail_screen.dart';
 import 'features/student/penalty_details_screen.dart';
 import 'features/notifications/notification_test_screen.dart';
 import 'features/notifications/notification_screen.dart';
@@ -49,7 +50,7 @@ class _SportiQAppState extends State<SportiQApp> {
         print('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
         final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users'};
         final requiresStudent = <String>{'/student', '/my_borrowed'};
-        final requiresLogin = <String>{'/equipment', '/scan', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications'};
+        final requiresLogin = <String>{'/equipment', '/scan', '/equipment_detail', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications'};
 
         if (requiresAdmin.contains(settings.name)) {
           // Use FirebaseAuth directly for logged-in check
@@ -102,6 +103,13 @@ class _SportiQAppState extends State<SportiQApp> {
               return MaterialPageRoute(builder: (_) => BorrowEquipmentForm(equipment: argsForm['equipment'] as dynamic));
             }
             return MaterialPageRoute(builder: (_) => BorrowConfirmationScreen());
+          case '/equipment_detail':
+            final argsDetail = settings.arguments as Map<String, dynamic>?;
+            if (argsDetail != null && argsDetail['equipment'] != null) {
+              return MaterialPageRoute(builder: (_) => EquipmentDetailScreen(equipment: argsDetail['equipment'] as Map<String, dynamic>));
+            }
+            // fallback: go to equipment list if no payload
+            return MaterialPageRoute(builder: (_) => EquipmentList());
           case '/add_equipment':
             final args = settings.arguments as Map<String, dynamic>?;
             if (args != null && args['id'] != null) {

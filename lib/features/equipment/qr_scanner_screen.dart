@@ -3,6 +3,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../providers/equipment_provider.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'qr_payload.dart';
+import 'dev_seed.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -61,10 +65,23 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       if (found == null) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No equipment found for this QR code')));
       } else {
-        final id = found['id']?.toString() ?? '';
-        final name = found['name']?.toString() ?? 'Unknown';
-        final status = found['status']?.toString() ?? 'Unknown';
-        if (mounted) _showEquipmentDialog(id, name, status);
+        // navigate to equipment detail page instead of staying on scanner
+        if (mounted) {
+          // pause scanning before navigation
+          setState(() {
+            _isScanning = false;
+          });
+          Navigator.pushNamed(context, '/equipment_detail', arguments: {'equipment': found})
+              .then((_) {
+            // resume scanning when user returns
+            if (mounted) setState(() => _isScanning = true);
+          });
+        }
+
+        // Log scan event (non-blocking)
+        try {
+          await provider.logScan(equipmentId: found['id']?.toString() ?? '', scannedBy: 'system', rawValue: code, action: 'scan');
+        } catch (_) {}
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan error: $e')));
@@ -75,38 +92,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         });
       }
     }
-  }
-
-  void _showEquipmentDialog(String id, String name, String status) {
-    showDialog<void>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(name),
-        content: Text('Status: $status'),
-        actions: [
-          if (status == 'Available')
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(c);
-                await _updateStatus(id, 'Borrowed');
-              },
-              child: const Text('Issue Equipment'),
-            ),
-          if (status == 'Borrowed')
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(c);
-                await _updateStatus(id, 'Available');
-              },
-              child: const Text('Return Equipment'),
-            ),
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close')),
-        ],
-      ),
-    ).then((_) {
-      // re-enable scanning
-      if (mounted) setState(() => _isScanning = true);
-    });
   }
 
   Future<void> _updateStatus(String id, String newStatus) async {
@@ -122,6 +107,59 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     } finally {
       if (mounted) setState(() => _processing = false);
     }
+  }
+
+  void _showManualEntryDialog() {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Enter QR code or equipment id'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Paste QR payload or equipment id'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final code = controller.text.trim();
+              if (code.isEmpty) return;
+              Navigator.pop(c);
+              if (!mounted) return;
+              setState(() => _processing = true);
+              try {
+                final provider = Provider.of<EquipmentProvider>(context, listen: false);
+                final found = await provider.findByQrValue(code);
+                // Log manual lookup
+                try {
+                  await provider.logScan(equipmentId: found?['id']?.toString() ?? '', scannedBy: 'manual', rawValue: code, action: 'manual_lookup');
+                } catch (_) {}
+                if (found == null) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No equipment found for that code')));
+                  if (mounted) setState(() => _isScanning = true);
+                } else {
+                  // Navigate to equipment detail page for consistency with scanner
+                  if (mounted) {
+                    setState(() => _isScanning = false);
+                    Navigator.pushNamed(context, '/equipment_detail', arguments: {'equipment': found})
+                        .then((_) {
+                      if (mounted) setState(() => _isScanning = true);
+                    });
+                  }
+                }
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lookup failed: $e')));
+              } finally {
+                if (mounted) setState(() => _processing = false);
+              }
+            },
+            child: const Text('Lookup'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -161,18 +199,60 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             bottom: 24,
             left: 16,
             right: 16,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                          Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_lastScan == null ? 'Point camera at QR code' : 'Last: $_lastScan'),
+                          const SizedBox(height: 8),
+                          Text('Scanning: ${_isScanning ? 'ON' : 'OFF'}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Text(_lastScan == null ? 'Point camera at QR code' : 'Last: $_lastScan'),
-                    const SizedBox(height: 8),
-                    Text('Scanning: ${_isScanning ? 'ON' : 'OFF'}'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Enter Code Manually'),
+                        onPressed: () => _showManualEntryDialog(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.qr_code),
+                      label: const Text('Copy Sample QR'),
+                      onPressed: () {
+                        final sample = samplePayload();
+                        Clipboard.setData(ClipboardData(text: sample));
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sample QR payload copied')));
+                      },
+                    ),
+                    if (kDebugMode) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Seed sample equipment (debug)',
+                        icon: const Icon(Icons.cloud_upload),
+                        onPressed: () async {
+                          try {
+                            await seedSampleEquipment();
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeded sample equipment')));
+                          } catch (e) {
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Seeding failed: $e')));
+                          }
+                        },
+                      )
+                    ]
                   ],
                 ),
-              ),
+              ],
             ),
           ),
         ],

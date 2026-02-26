@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
+import '../features/equipment/dev_seed.dart';
 
 /// EquipmentProvider: listens to `equipment` collection and exposes CRUD methods.
 /// Keep reads/writes minimal to remain within Firebase Spark free tier.
@@ -33,9 +36,21 @@ class EquipmentProvider extends ChangeNotifier {
         data['id'] = doc.id;
         _items.add(data);
       }
+      
+      // Auto-seed if collection is empty
+      if (_items.isEmpty) {
+        print('📦 Equipment collection empty. Auto-seeding demo data...');
+        seedSampleEquipment().then((_) {
+          print('✅ Demo equipment seeded successfully');
+        }).catchError((e) {
+          print('❌ Auto-seed failed: $e');
+        });
+      }
+      
       notifyListeners();
     }, onError: (err) {
       // Log or handle errors appropriately by consumers
+      print('❌ Equipment collection error: $err');
     });
   }
 
@@ -92,48 +107,78 @@ class EquipmentProvider extends ChangeNotifier {
 
   /// Find equipment by a scanned QR value. The QR value is expected to match
   /// either the document id, an `equipmentId` field, or `qrCodeValue` field.
+  /// Also parses JSON QR payloads to extract equipmentId.
   Future<Map<String, dynamic>?> findByQrValue(String qrValue) async {
-    // First try local cache
+    // Try to parse QR value as JSON and extract equipmentId
+    String? extractedEquipmentId;
     try {
-      final cached = _items.firstWhere((m) {
-        final eqId = m['equipmentId']?.toString();
-        final qr = m['qrCodeValue']?.toString();
-        final docId = m['id']?.toString();
-        return qrValue == eqId || qrValue == qr || qrValue == docId;
-      }, orElse: () => {});
-      if (cached.isNotEmpty) return Map<String, dynamic>.from(cached);
+      final decoded = jsonDecode(qrValue) as Map;
+      extractedEquipmentId = decoded['equipmentId']?.toString();
+      print('DEBUG: Parsed QR JSON, extracted equipmentId: $extractedEquipmentId');
+    } catch (e) {
+      print('DEBUG: QR value is not JSON, will use raw value: $qrValue');
+    }
+
+    // Build list of search values
+    final searchValues = <String>{qrValue};
+    if (extractedEquipmentId != null) {
+      searchValues.add(extractedEquipmentId);
+    }
+
+    // First try local cache with all search values
+    try {
+      for (final searchValue in searchValues) {
+        final cached = _items.firstWhere((m) {
+          final eqId = m['equipmentId']?.toString();
+          final qr = m['qrCodeValue']?.toString();
+          final docId = m['id']?.toString();
+          return searchValue == eqId || searchValue == qr || searchValue == docId;
+        }, orElse: () => {});
+        if (cached.isNotEmpty) {
+          print('DEBUG: Found equipment in cache: ${cached['equipmentId']}');
+          return Map<String, dynamic>.from(cached);
+        }
+      }
     } catch (_) {}
 
-    // Fallback to Firestore query
+    // Fallback to Firestore query with all search values
     try {
-      // Try by equipmentId
-      final byEquip = await _firestore.collection('equipment').where('equipmentId', isEqualTo: qrValue).limit(1).get();
-      if (byEquip.docs.isNotEmpty) {
-        final d = byEquip.docs.first;
-        final data = Map<String, dynamic>.from(d.data());
-        data['id'] = d.id;
-        return data;
-      }
+      for (final searchValue in searchValues) {
+        // Try by equipmentId
+        final byEquip = await _firestore.collection('equipment').where('equipmentId', isEqualTo: searchValue).limit(1).get();
+        if (byEquip.docs.isNotEmpty) {
+          final d = byEquip.docs.first;
+          final data = Map<String, dynamic>.from(d.data());
+          data['id'] = d.id;
+          print('DEBUG: Found equipment by equipmentId in Firestore: $searchValue');
+          return data;
+        }
 
-      // Try by qrCodeValue
-      final byQr = await _firestore.collection('equipment').where('qrCodeValue', isEqualTo: qrValue).limit(1).get();
-      if (byQr.docs.isNotEmpty) {
-        final d = byQr.docs.first;
-        final data = Map<String, dynamic>.from(d.data());
-        data['id'] = d.id;
-        return data;
-      }
+        // Try by qrCodeValue (exact match)
+        final byQr = await _firestore.collection('equipment').where('qrCodeValue', isEqualTo: searchValue).limit(1).get();
+        if (byQr.docs.isNotEmpty) {
+          final d = byQr.docs.first;
+          final data = Map<String, dynamic>.from(d.data());
+          data['id'] = d.id;
+          print('DEBUG: Found equipment by qrCodeValue in Firestore: $searchValue');
+          return data;
+        }
 
-      // Try matching document id
-      final doc = await _firestore.collection('equipment').doc(qrValue).get();
-      if (doc.exists) {
-        final data = Map<String, dynamic>.from(doc.data()!);
-        data['id'] = doc.id;
-        return data;
+        // Try matching document id
+        final doc = await _firestore.collection('equipment').doc(searchValue).get();
+        if (doc.exists) {
+          final data = Map<String, dynamic>.from(doc.data()!);
+          data['id'] = doc.id;
+          print('DEBUG: Found equipment by document ID in Firestore: $searchValue');
+          return data;
+        }
       }
     } catch (e) {
+      print('DEBUG: Firestore query error: $e');
       rethrow;
     }
+    
+    print('DEBUG: No equipment found for any search values: $searchValues');
     return null;
   }
 

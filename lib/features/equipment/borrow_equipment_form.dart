@@ -1,33 +1,14 @@
 import 'package:flutter/material.dart';
 
-class Equipment {
-  final String id;
-  final String name;
-  final String description;
-  final String category;
-  final int quantity;
-  final int available;
-  final IconData icon;
-
-  Equipment({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.category,
-    required this.quantity,
-    required this.available,
-    required this.icon,
-  });
-}
-
 class BorrowEquipmentForm extends StatefulWidget {
-  final Equipment equipment;
+  final dynamic equipment; // Accept both Equipment and Map<String, dynamic>
 
   const BorrowEquipmentForm({super.key, required this.equipment});
 
   @override
   State<BorrowEquipmentForm> createState() => _BorrowEquipmentFormState();
 }
+
 
 class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
   final _formKey = GlobalKey<FormState>();
@@ -37,6 +18,25 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
   String? _purpose;
   String _borrowDuration = '1 Day';
   bool _agreeToTerms = false;
+
+  // Helper methods to support both Map and Equipment types
+  String _getEquipmentName() {
+    final eq = widget.equipment;
+    if (eq is Map) return eq['name']?.toString() ?? 'Unknown';
+    return eq.name;
+  }
+
+  int _getEquipmentAvailable() {
+    final eq = widget.equipment;
+    if (eq is Map) return (eq['available'] ?? 0) as int;
+    return eq.available;
+  }
+
+  IconData _getEquipmentIcon() {
+    final eq = widget.equipment;
+    if (eq is Map) return Icons.inventory_2; // Default icon for map
+    return eq.icon;
+  }
 
   @override
   void initState() {
@@ -120,7 +120,7 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildConfirmationRow('Equipment:', widget.equipment.name),
+              _buildConfirmationRow('Equipment:', _getEquipmentName()),
               _buildConfirmationRow('Quantity:', '$_quantity'),
               _buildConfirmationRow('Borrow Date:', _formatDate(_borrowDate)),
               _buildConfirmationRow('Return Date:', _formatDate(_returnDate)),
@@ -307,7 +307,7 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
-                            widget.equipment.icon,
+                            _getEquipmentIcon(),
                             size: 40,
                             color: Colors.blue,
                           ),
@@ -318,12 +318,12 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.equipment.name,
+                                _getEquipmentName(),
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Available: ${widget.equipment.available}',
+                                'Available: ${_getEquipmentAvailable()}',
                                 style: const TextStyle(
                                   color: Colors.green,
                                   fontWeight: FontWeight.bold,
@@ -362,7 +362,7 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.add),
-                        onPressed: _quantity < widget.equipment.available
+                        onPressed: _quantity < _getEquipmentAvailable()
                             ? () => setState(() => _quantity++)
                             : null,
                       ),

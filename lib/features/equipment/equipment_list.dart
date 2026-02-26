@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import 'dev_seed.dart';
 
 class EquipmentList extends StatefulWidget {
   const EquipmentList({super.key});
@@ -107,6 +108,26 @@ class _EquipmentListState extends State<EquipmentList> {
                 ),
               ),
             ),
+          ),
+          IconButton(
+            onPressed: () async {
+              try {
+                await seedSampleEquipment();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ Demo equipment seeded to Firestore')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('❌ Seed failed: $e')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: 'Seed demo equipment',
           ),
           IconButton(
             onPressed: () => Navigator.pushNamed(context, '/scan'),
@@ -224,4 +245,5 @@ class _EquipmentListState extends State<EquipmentList> {
       ),
     );
   }
+
 }
