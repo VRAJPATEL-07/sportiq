@@ -22,6 +22,11 @@ import 'features/notifications/notification_test_screen.dart';
 import 'features/notifications/notification_screen.dart';
 import 'routes/unauthorized_screen.dart';
 import 'core/navigation.dart';
+import 'screens/advanced/advanced_tools_screen.dart';
+import 'screens/api_posts_screen.dart';
+import 'screens/gallery_screen.dart';
+import 'screens/camera_screen.dart';
+import 'screens/qr_scan_screen.dart';
 
 class SportiQApp extends StatefulWidget {
   const SportiQApp({super.key});
@@ -135,6 +140,16 @@ class _SportiQAppState extends State<SportiQApp> {
           case '/notification_test':
             // LAB 8: Test screen for notifications and animations
             return MaterialPageRoute(builder: (_) => const NotificationTestScreen());
+          case '/advanced_tools':
+            return MaterialPageRoute(builder: (_) => const AdvancedToolsScreen());
+          case '/api_posts':
+            return MaterialPageRoute(builder: (_) => const ApiPostsScreen());
+          case '/gallery':
+            return MaterialPageRoute(builder: (_) => const GalleryScreen());
+          case '/camera':
+            return MaterialPageRoute(builder: (_) => const CameraCaptureScreen());
+          case '/qr_scan':
+            return MaterialPageRoute(builder: (_) => const QRScanScreen());
           case '/unauthorized':
             return MaterialPageRoute(builder: (_) => UnauthorizedScreen());
           default:

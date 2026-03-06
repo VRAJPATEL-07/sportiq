@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'app.dart';
 import 'firebase_options.dart';
 import 'auth/auth_service.dart';
@@ -11,9 +12,18 @@ import 'providers/notification_provider.dart';
 import 'core/navigation.dart';
 import 'services/notification_service.dart';
 import 'services/local_notification_service.dart';
+import 'dart:io' show Platform;
+import 'providers/post_provider.dart';
+import 'providers/image_files_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock orientation to portrait only
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   bool firebaseReady = false;
   String? firebaseError;
@@ -86,6 +96,10 @@ void main() async {
   // Initialize local notifications (for static timer-based notifications)
   try {
     await LocalNotificationService.instance.initialize();
+    // Schedule demo periodic notification every 1 minute only on mobile platforms
+    if (Platform.isAndroid || Platform.isIOS) {
+      await LocalNotificationService.instance.schedulePeriodicNotification();
+    }
   } catch (e) {
     print('Warning: LocalNotificationService init failed: $e');
   }
@@ -106,6 +120,8 @@ void main() async {
         ChangeNotifierProvider.value(
           value: EquipmentProvider.instance,
         ),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
+        ChangeNotifierProvider(create: (_) => ImageFilesProvider()),
         ChangeNotifierProvider(
           create: (context) => NotificationProvider(
             notificationService: LocalNotificationService.instance,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:io' show Platform;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../providers/equipment_provider.dart';
@@ -21,12 +22,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _flashOn = false;
   bool _processing = false;
 
-  final MobileScannerController _controller = MobileScannerController();
+  MobileScannerController? _controller;
+  bool get _isMobilePlatform => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   void initState() {
     super.initState();
-    _requestCameraPermission();
+    if (_isMobilePlatform) {
+      _controller = MobileScannerController();
+      _requestCameraPermission();
+    }
   }
 
   Future<void> _requestCameraPermission() async {
@@ -94,20 +99,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
   }
 
-  Future<void> _updateStatus(String id, String newStatus) async {
-    setState(() => _processing = true);
-    try {
-      final provider = Provider.of<EquipmentProvider>(context, listen: false);
-      await provider.updateStatus(id, newStatus);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Equipment updated: $newStatus')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
-    } finally {
-      if (mounted) setState(() => _processing = false);
-    }
-  }
 
   void _showManualEntryDialog() {
     final controller = TextEditingController();
@@ -164,7 +155,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -177,7 +168,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           IconButton(
             icon: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
             onPressed: () {
-              _controller.toggleTorch();
+              _controller?.toggleTorch();
               setState(() => _flashOn = !_flashOn);
             },
           ),
@@ -189,10 +180,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _handleBarcode,
-          ),
+          if (_isMobilePlatform)
+            MobileScanner(
+              controller: _controller!,
+              onDetect: _handleBarcode,
+            )
+          else
+            const Center(child: Text('Camera scanner is not supported on this platform.')),
           if (_processing)
             const Center(child: CircularProgressIndicator()),
           Positioned(

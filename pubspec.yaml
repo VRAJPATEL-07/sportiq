@@ -42,6 +42,16 @@ dependencies:
   google_sign_in: ^7.2.0
   # LAB 7: HTTP client for REST API integration
   http: ^1.1.0
+  # URL launcher for email/sms/call
+  url_launcher: ^6.1.12
+  # FAB speed dial
+  flutter_speed_dial: ^7.0.0
+  # Wakelock control
+  wakelock_plus: ^1.4.0
+  # Image picker for gallery & camera
+  image_picker: ^1.1.0
+  # Local file storage
+  path_provider: ^2.0.14
   # LAB 8: Notifications
   firebase_messaging: ^16.1.1
   flutter_local_notifications: ^13.0.0

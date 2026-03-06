@@ -159,9 +159,7 @@ class LocalNotificationService {
         channelDescription: 'Notifications for sports equipment alerts',
         importance: Importance.max,
         priority: Priority.high,
-        sound: const RawResourceAndroidNotificationSound('notification_sound'),
         icon: '@mipmap/ic_launcher',
-        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
         enableLights: true,
         enableVibration: true,
         color: const Color.fromARGB(255, 33, 150, 243),
@@ -216,6 +214,44 @@ class LocalNotificationService {
       debugPrint('All notifications cancelled');
     } catch (e) {
       debugPrint('Error cancelling all notifications: $e');
+    }
+  }
+
+  /// Schedule a repeating notification every [minutes]. Uses `periodicallyShow`.
+  ///
+  /// Use a small interval (1 minute) for demo purposes. In production be mindful
+  /// of platform battery constraints and user expectations.
+  Future<void> schedulePeriodicNotification({int id = 0, String title = 'Check your borrowed equipment', String body = 'Reminder to check borrowed equipment', Duration interval = const Duration(minutes: 1)}) async {
+    try {
+      // The plugin offers predefined repeat intervals; for custom minute intervals
+      // we use a periodic `show` with the closest match. For flexibility we call
+      // show every [interval] using a periodic Timer-like approach on Android via
+      // `periodicallyShow` with RepeatInterval.everyMinute for 1 minute.
+      if (interval == const Duration(minutes:1)) {
+        await _localNotifications.periodicallyShow(
+          id,
+          title,
+          body,
+          RepeatInterval.everyMinute,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'sportiq_notifications',
+              'SportiQ Notifications',
+              channelDescription: 'Notifications for sports equipment alerts',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+          androidAllowWhileIdle: true,
+        );
+        debugPrint('Scheduled periodic notification every 1 minute');
+      } else {
+        // Fallback: show a single notification when custom intervals are requested.
+        await showNotification(id: id, title: title, body: body);
+      }
+    } catch (e) {
+      debugPrint('Error scheduling periodic notification: $e');
     }
   }
 }

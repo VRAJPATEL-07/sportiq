@@ -154,6 +154,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Navigator.pushNamed(context, '/profile');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.build, color: Colors.deepOrange),
+              title: const Text('Advanced Tools (Lab Demo)'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/advanced_tools');
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
