@@ -159,7 +159,7 @@ class _EquipmentListState extends State<EquipmentList> {
                       const SizedBox(height: 4),
                       Chip(
                         label: Text(equipment.category),
-                        backgroundColor: Colors.blue.withOpacity(0.2),
+                        backgroundColor: Colors.blue.withValues(alpha: 0.2),
                       ),
                     ],
                   ),
@@ -376,7 +376,7 @@ class _EquipmentListState extends State<EquipmentList> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -393,7 +393,7 @@ class _EquipmentListState extends State<EquipmentList> {
           children: [
             Chip(
               label: Text(equipment.category),
-              backgroundColor: Colors.blue.withOpacity(0.2),
+              backgroundColor: Colors.blue.withValues(alpha: 0.2),
               labelStyle: const TextStyle(fontSize: 12),
             ),
             const SizedBox(width: 8),
@@ -425,8 +425,8 @@ class _EquipmentListState extends State<EquipmentList> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.blue.withOpacity(0.05),
-                Colors.blue.withOpacity(0.02),
+                Colors.blue.withValues(alpha: 0.05),
+                Colors.blue.withValues(alpha: 0.02),
               ],
             ),
           ),

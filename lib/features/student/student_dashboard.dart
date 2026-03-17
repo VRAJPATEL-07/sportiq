@@ -53,12 +53,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
         actions: [
           const NotificationBellButton(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.3),
+                  color: Colors.blue.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -71,6 +71,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 ),
               ),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
           ),
         ],
       ),
@@ -151,6 +158,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/my_borrowed');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('Booking History'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/booking_history');
               },
             ),
             ListTile(
@@ -264,10 +279,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     icon: Icons.history,
                     title: "Booking History",
                     onTap: () {
-                      // Dummy
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Feature coming soon!")),
-                      );
+                      Navigator.pushNamed(context, '/booking_history');
                     },
                   ),
                   _buildActionCard(

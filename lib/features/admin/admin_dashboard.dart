@@ -54,7 +54,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.3),
+                  color: Colors.orange.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -147,6 +147,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: const Text('Reports'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/reports');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings & Profile'),
               onTap: () {
@@ -214,11 +222,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: Icons.edit,
                     title: "Manage Equipment",
                     subtitle: "Edit or remove existing equipment",
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Manage Equipment feature coming soon!")),
-                        );
-                      },
+                    onTap: () {
+                      Navigator.pushNamed(context, '/equipment');
+                    },
                   ),
                   _buildManagementTile(
                     context,
@@ -235,9 +241,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     title: "Reports",
                     subtitle: "View usage reports and analytics",
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Reports feature coming soon!")),
-                      );
+                      Navigator.pushNamed(context, '/reports');
                     },
                   ),
                   _buildManagementTile(
@@ -246,9 +250,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     title: "System Settings",
                     subtitle: "Configure app settings and preferences",
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Settings feature coming soon!")),
-                      );
+                      Navigator.pushNamed(context, '/profile');
                     },
                   ),
                 ],
@@ -259,11 +261,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Quick add feature coming soon!")),
-          );
+          Navigator.pushNamed(context, '/add_equipment');
         },
-        tooltip: 'Quick Add',
+        tooltip: 'Add Equipment',
         child: const Icon(Icons.add),
       ),
     );

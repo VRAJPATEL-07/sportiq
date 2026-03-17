@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'qr_payload.dart';
 
 /// Seeds sample equipment documents for testing.
@@ -104,7 +105,7 @@ Future<void> seedSampleEquipment() async {
         });
       }
     } catch (e) {
-      print('Error seeding ${item['equipmentId']}: $e');
+      debugPrint('Error seeding ${item['equipmentId']}: $e');
       rethrow;
     }
   }

@@ -90,7 +90,7 @@ class AuthProvider extends ChangeNotifier {
         }
       } catch (e) {
         // Keep isAdmin=false on error; avoid blocking startup
-        print('Warning: could not fetch user role: $e');
+        debugPrint('Warning: could not fetch user role: $e');
       }
 
       _user = UserModel(
@@ -156,7 +156,7 @@ class AuthProvider extends ChangeNotifier {
             if (data != null && data['role'] == 'admin') isAdmin = true;
           }
         } catch (e) {
-          print('Warning: could not fetch role on login: $e');
+          debugPrint('Warning: could not fetch role on login: $e');
         }
 
         _user = UserModel(
@@ -241,7 +241,7 @@ class AuthProvider extends ChangeNotifier {
             'createdAt': FieldValue.serverTimestamp(),
           });
         } catch (e) {
-          print('Warning: could not create user document on register: $e');
+          debugPrint('Warning: could not create user document on register: $e');
         }
 
         _user = UserModel(

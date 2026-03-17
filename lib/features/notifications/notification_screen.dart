@@ -26,9 +26,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     // Mark all notifications as read when user opens this screen
-    Future.microtask(
-      () => context.read<NotificationProvider>().markAllAsRead(),
-    );
+    Future.microtask(() {
+      if (!mounted) return;
+      context.read<NotificationProvider>().markAllAsRead();
+    });
   }
 
   @override
@@ -118,7 +119,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.8),
+          color: Colors.red.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.only(right: 20),
@@ -153,7 +154,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 8),
         elevation: notification.isRead ? 0 : 2,
-        shadowColor: Colors.grey.withOpacity(0.2),
+        shadowColor: Colors.grey.withValues(alpha: 0.2),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -162,12 +163,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ? Colors.grey[900]
                     : Colors.grey[50]
                 : isDark
-                    ? Colors.blue[900]?.withOpacity(0.2)
+                    ? Colors.blue[900]?.withValues(alpha: 0.2)
                     : Colors.blue[50],
             border: notification.isRead
                 ? null
                 : Border.all(
-                    color: Colors.blue.withOpacity(0.3),
+                    color: Colors.blue.withValues(alpha: 0.3),
                     width: 1,
                   ),
           ),
@@ -193,7 +194,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -274,7 +275,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.15),
+                              color: Colors.green.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(

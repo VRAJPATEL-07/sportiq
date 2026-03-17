@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import '../../providers/equipment_provider.dart';
 import 'dev_seed.dart';
 
 class EquipmentList extends StatefulWidget {
@@ -13,76 +14,37 @@ class EquipmentList extends StatefulWidget {
 }
 
 class _EquipmentListState extends State<EquipmentList> {
-  late List<Map<String, dynamic>> _demoEquipment;
+  /// Fallback demo data shown when Firestore is unavailable or empty
+  static const List<Map<String, dynamic>> _demoEquipment = [
+    {'name': 'Basketball', 'category': 'Ball Sports', 'quantity': 10, 'available': 8},
+    {'name': 'Soccer Ball', 'category': 'Ball Sports', 'quantity': 15, 'available': 12},
+    {'name': 'Tennis Racket', 'category': 'Racket Sports', 'quantity': 8, 'available': 6},
+    {'name': 'Badminton Set', 'category': 'Racket Sports', 'quantity': 12, 'available': 10},
+    {'name': 'Volleyball', 'category': 'Ball Sports', 'quantity': 6, 'available': 5},
+    {'name': 'Cricket Bat', 'category': 'Bat Sports', 'quantity': 5, 'available': 4},
+    {'name': 'Roller Skates', 'category': 'Accessories', 'quantity': 4, 'available': 2},
+    {'name': 'Skateboard', 'category': 'Accessories', 'quantity': 3, 'available': 1},
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    // Initialize demo equipment data
-    _demoEquipment = [
-      {
-        'name': 'Basketball',
-        'category': 'Ball Sports',
-        'quantity': 10,
-        'available': 8,
-        'icon': Icons.sports_basketball
-      },
-      {
-        'name': 'Soccer Ball',
-        'category': 'Ball Sports',
-        'quantity': 15,
-        'available': 12,
-        'icon': Icons.sports_soccer
-      },
-      {
-        'name': 'Tennis Racket',
-        'category': 'Racket Sports',
-        'quantity': 8,
-        'available': 6,
-        'icon': Icons.sports_tennis
-      },
-      {
-        'name': 'Badminton Set',
-        'category': 'Racket Sports',
-        'quantity': 12,
-        'available': 10,
-        'icon': Icons.sports_handball
-      },
-      {
-        'name': 'Volleyball',
-        'category': 'Ball Sports',
-        'quantity': 6,
-        'available': 5,
-        'icon': Icons.sports_volleyball
-      },
-      {
-        'name': 'Cricket Bat',
-        'category': 'Bat Sports',
-        'quantity': 5,
-        'available': 4,
-        'icon': Icons.sports_cricket
-      },
-      {
-        'name': 'Roller Skates',
-        'category': 'Accessories',
-        'quantity': 4,
-        'available': 2,
-        'icon': Icons.sports_kabaddi
-      },
-      {
-        'name': 'Skateboard',
-        'category': 'Accessories',
-        'quantity': 3,
-        'available': 1,
-        'icon': Icons.sports_gymnastics
-      },
-    ];
+  IconData _iconForCategory(String? category) {
+    switch ((category ?? '').toLowerCase()) {
+      case 'ball sports': return Icons.sports_soccer;
+      case 'racket sports': return Icons.sports_tennis;
+      case 'bat sports': return Icons.sports_cricket;
+      default: return Icons.inventory_2;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
-    
+    final equipmentProvider = Provider.of<EquipmentProvider>(context);
+
+    // Use live Firestore data if available, otherwise fall back to demo data
+    final firestoreItems = equipmentProvider.items;
+    final displayItems = firestoreItems.isNotEmpty ? firestoreItems : _demoEquipment;
+    final usingDemo = firestoreItems.isEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Available Equipment"),
@@ -95,7 +57,9 @@ class _EquipmentListState extends State<EquipmentList> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: auth.current.role == 'admin' ? Colors.orange.withOpacity(0.3) : Colors.blue.withOpacity(0.3),
+                  color: auth.current.role == 'admin'
+                      ? Colors.orange.withValues(alpha: 0.3)
+                      : Colors.blue.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -103,7 +67,9 @@ class _EquipmentListState extends State<EquipmentList> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: auth.current.role == 'admin' ? Colors.orange.shade800 : Colors.blue.shade800,
+                    color: auth.current.role == 'admin'
+                        ? Colors.orange.shade800
+                        : Colors.blue.shade800,
                   ),
                 ),
               ),
@@ -111,23 +77,24 @@ class _EquipmentListState extends State<EquipmentList> {
           ),
           IconButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await seedSampleEquipment();
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('✅ Demo equipment seeded to Firestore')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(content: Text('❌ Seed failed: $e')),
                   );
                 }
               }
             },
             icon: const Icon(Icons.cloud_upload),
-            tooltip: 'Seed demo equipment',
+            tooltip: 'Seed demo equipment to Firestore',
           ),
           IconButton(
             onPressed: () => Navigator.pushNamed(context, '/scan'),
@@ -136,19 +103,63 @@ class _EquipmentListState extends State<EquipmentList> {
           ),
         ],
       ),
-      body: Builder(
-        builder: (builderContext) {
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _demoEquipment.length,
-            itemBuilder: (context, index) {
-              final item = _demoEquipment[index];
-              final isAvailable = (item['available'] as int) > 0;
-              final icon = item['icon'] as IconData;
-              return _buildEquipmentCard(item, icon, isAvailable);
-            },
-          );
-        },
+      body: Column(
+        children: [
+          // Show Firestore error banner if present
+          if (equipmentProvider.error != null)
+            Container(
+              color: Colors.red.shade50,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      equipmentProvider.error!,
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Show banner when displaying demo data
+          if (usingDemo && equipmentProvider.error == null && !equipmentProvider.isLoading)
+            Container(
+              color: Colors.blue.shade50,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Showing demo data. Tap the cloud icon to seed real data.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Equipment list
+          if (equipmentProvider.isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: displayItems.length,
+                itemBuilder: (context, index) {
+                  final item = displayItems[index];
+                  final qty = (item['quantity'] as int?) ?? 0;
+                  final avail = (item['available'] as int?) ?? qty;
+                  final isAvailable = avail > 0;
+                  final icon = _iconForCategory(item['category']?.toString());
+                  return _buildEquipmentCard(item, icon, isAvailable, avail, qty);
+                },
+              ),
+            ),
+        ],
       ),
       floatingActionButton: auth.current.role == 'admin'
           ? FloatingActionButton.extended(
@@ -161,83 +172,203 @@ class _EquipmentListState extends State<EquipmentList> {
   }
 
   Widget _buildEquipmentCard(
-      Map<String, dynamic> item, IconData icon, bool isAvailable) {
+    Map<String, dynamic> item,
+    IconData icon,
+    bool isAvailable,
+    int available,
+    int quantity,
+  ) {
+    final auth = Provider.of<IAuthService>(context, listen: false);
+    final isAdmin = auth.current.role == 'admin';
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 3,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isAvailable ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: isAvailable ? Colors.green : Colors.red, size: 28),
-        ),
-        title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(item['category'], style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isAvailable ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                color: isAvailable
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.red.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                '${item['available']}/${item['quantity']} Available',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+              child: Icon(icon,
+                  color: isAvailable ? Colors.green : Colors.red, size: 28),
+            ),
+            title: Text(item['name']?.toString() ?? 'Unknown',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(item['category']?.toString() ?? 'General',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isAvailable
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$available/$quantity Available',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isAvailable
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            trailing: isAvailable
+                ? ElevatedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/borrow_form',
+                        arguments: {'equipment': item}),
+                    icon: const Icon(Icons.shopping_cart, size: 16),
+                    label: const Text('Borrow'),
+                  )
+                : Chip(
+                    label: const Text('Out of Stock'),
+                    backgroundColor: Colors.red.withValues(alpha: 0.2),
+                  ),
+            onTap: () => _showEquipmentDetails(item, available, quantity),
+          ),
+          if (isAdmin)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      final id = item['id']?.toString();
+                      if (id != null) {
+                        Navigator.pushNamed(
+                          context,
+                          '/add_equipment',
+                          arguments: {'id': id, 'data': item},
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
+                    label: const Text('Edit', style: TextStyle(color: Colors.blue)),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => _confirmDelete(item),
+                    icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                    label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        trailing: isAvailable
-            ? ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/borrow_form', arguments: {'equipment': item}),
-                icon: const Icon(Icons.shopping_cart, size: 16),
-                label: const Text('Borrow'),
-              )
-            : Chip(
-                label: const Text('Out of Stock'),
-                backgroundColor: Colors.red.withOpacity(0.2),
-              ),
-        onTap: () => _showEquipmentDetails(item),
+        ],
       ),
     );
   }
 
-  void _showEquipmentDetails(Map<String, dynamic> item) {
+  void _confirmDelete(Map<String, dynamic> item) {
+    final id = item['id']?.toString();
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot delete demo item — seed real data first'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Equipment'),
+        content: Text('Are you sure you want to delete "${item['name'] ?? 'this item'}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final provider = context.read<EquipmentProvider>();
+              try {
+                await provider.deleteEquipment(id: id);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('"${item['name']}" deleted successfully')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Delete failed: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+  void _showEquipmentDetails(
+      Map<String, dynamic> item, int available, int quantity) {
+    final auth = Provider.of<IAuthService>(context, listen: false);
+    final isAdmin = auth.current.role == 'admin';
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(item['name']),
+        title: Text(item['name']?.toString() ?? 'Equipment'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Category: ${item['category']}'),
+            Text('Category: ${item['category'] ?? 'General'}'),
             const SizedBox(height: 8),
-            Text('Total: ${item['quantity']}'),
+            Text('Total: $quantity'),
             const SizedBox(height: 8),
-            Text('Available: ${item['available']}'),
+            Text('Available: $available'),
             const SizedBox(height: 8),
-            Text('Status: ${(item['available'] as int) > 0 ? '✅ Available' : '❌ Out of Stock'}'),
+            Text('Status: ${available > 0 ? '✅ Available' : '❌ Out of Stock'}'),
+            if (item['description'] != null) ...[
+              const SizedBox(height: 8),
+              Text('Description: ${item['description']}'),
+            ],
+            if (item['penalty'] != null) ...[
+              const SizedBox(height: 8),
+              Text('Penalty/Day: \$${item['penalty']}'),
+            ],
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          if ((item['available'] as int) > 0)
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close')),
+          if (isAdmin && item['id'] != null)
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  '/add_equipment',
+                  arguments: {'id': item['id'], 'data': item},
+                );
+              },
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit'),
+            ),
+          if (available > 0)
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/borrow_form', arguments: {'equipment': item});
+                Navigator.pushNamed(context, '/borrow_form',
+                    arguments: {'equipment': item});
               },
               child: const Text('Borrow'),
             ),
@@ -245,5 +376,4 @@ class _EquipmentListState extends State<EquipmentList> {
       ),
     );
   }
-
 }

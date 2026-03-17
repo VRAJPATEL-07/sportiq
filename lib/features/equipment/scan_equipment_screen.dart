@@ -1,9 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'qr_scanner_screen.dart';
 import 'scan_history_screen.dart';
 
 class ScanEquipmentScreen extends StatelessWidget {
   const ScanEquipmentScreen({super.key});
+
+  bool get _supportsLiveCamera {
+    if (kIsWeb) return true;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android || TargetPlatform.iOS => true,
+      _ => false,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +37,10 @@ class ScanEquipmentScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Point your camera at the equipment's QR code to borrow it.",
+            Text(
+              _supportsLiveCamera
+                  ? "Point your camera at the equipment's QR code to borrow it."
+                  : "Open the scanner to import a QR image or enter the code manually on this platform.",
               style: TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
@@ -40,8 +51,8 @@ class ScanEquipmentScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen()));
                 },
-                icon: const Icon(Icons.camera_alt),
-                label: const Text("Open Camera"),
+                icon: Icon(_supportsLiveCamera ? Icons.camera_alt : Icons.qr_code_scanner),
+                label: Text(_supportsLiveCamera ? "Open Camera" : "Open Scanner"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -53,11 +64,9 @@ class ScanEquipmentScreen extends StatelessWidget {
                 Expanded(
                   child: TextButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Manual entry feature coming soon!")),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen()));
                     },
-                    child: const Text("Enter Code Manually"),
+                    child: const Text("Manual / Image Scan"),
                   ),
                 ),
                 Expanded(

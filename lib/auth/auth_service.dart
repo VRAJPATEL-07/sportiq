@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'auth_service_base.dart';
 import 'auth_state.dart';
@@ -47,12 +48,12 @@ class AuthService extends IAuthService {
         final data = doc.data();
         if (data != null && data['role'] != null) {
           role = data['role'] as String;
-          print('DEBUG: User role fetched from Firestore: $role');
+          debugPrint('DEBUG: User role fetched from Firestore: $role');
         } else {
-          print('DEBUG: User document exists but has no role field. Defaulting to student.');
+          debugPrint('DEBUG: User document exists but has no role field. Defaulting to student.');
         }
       } else {
-        print('DEBUG: User document not found for ${user.uid}. Creating default student record.');
+        debugPrint('DEBUG: User document not found for ${user.uid}. Creating default student record.');
         try {
           await _firestore.collection('users').doc(user.uid).set({
             'email': user.email ?? '',
@@ -65,7 +66,7 @@ class AuthService extends IAuthService {
           // Ensure role is set in Firestore
           await _firestore.collection('users').doc(user.uid).update({'role': 'student'});
         } catch (e) {
-          print('ERROR: Could not create user document: $e');
+          debugPrint('ERROR: Could not create user document: $e');
           // Still continue with student role even if document creation fails
           role = 'student';
         }
@@ -81,7 +82,7 @@ class AuthService extends IAuthService {
       _controller.add(_state);
       notifyListeners();
     } catch (e) {
-      print('ERROR in _onAuthStateChanged: $e');
+      debugPrint('ERROR in _onAuthStateChanged: $e');
       // If Firestore read fails, default to student but still signed in.
       _state = AuthState(
         userId: user.uid,
@@ -99,17 +100,17 @@ class AuthService extends IAuthService {
   @override
   Future<AuthState> login({required String email, required String password}) async {
     try {
-      print('DEBUG: Attempting login for email: $email');
+      debugPrint('DEBUG: Attempting login for email: $email');
       final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
       final user = cred.user;
       if (user == null) throw FirebaseAuthException(code: 'NO_USER', message: 'No user returned');
 
-      print('DEBUG: Firebase auth successful for user: ${user.uid}');
+      debugPrint('DEBUG: Firebase auth successful for user: ${user.uid}');
       
       // _onAuthStateChanged will set state, but ensure we return latest state
       await _onAuthStateChanged(user);
       
-      print('DEBUG: Login complete. Returning state with role: ${_state.role}');
+      debugPrint('DEBUG: Login complete. Returning state with role: ${_state.role}');
       
       // Ensure user has a Firestore record
       try {
@@ -125,16 +126,16 @@ class AuthService extends IAuthService {
         }
       } catch (firestoreError) {
         // Log but don't fail - user can still login
-        print('Warning: Could not create/verify user document: $firestoreError');
+        debugPrint('Warning: Could not create/verify user document: $firestoreError');
       }
       
       return _state;
     } on FirebaseAuthException catch (e) {
-      print('DEBUG: FirebaseAuthException: ${e.code} - ${e.message}');
+      debugPrint('DEBUG: FirebaseAuthException: ${e.code} - ${e.message}');
       rethrow;
     } catch (e, st) {
-      print('DEBUG: General exception during login: $e');
-      print(st);
+      debugPrint('DEBUG: General exception during login: $e');
+      debugPrint(st.toString());
       throw Exception('Login failed: An internal error has occurred. (${e.runtimeType}) ${e.toString()}');
     }
   }
@@ -144,7 +145,7 @@ class AuthService extends IAuthService {
   @override
   Future<AuthState> loginWithGoogle() async {
     try {
-      print('DEBUG: Google Sign-In button clicked...');
+      debugPrint('DEBUG: Google Sign-In button clicked...');
       
       // Show user-friendly error message with setup instructions
       throw Exception(
@@ -159,7 +160,7 @@ class AuthService extends IAuthService {
         'Contact your administrator for setup assistance.'
       );
     } catch (e) {
-      print('ERROR: Google Sign-In error: $e');
+      debugPrint('ERROR: Google Sign-In error: $e');
       rethrow;
     }
   }
@@ -182,7 +183,7 @@ class AuthService extends IAuthService {
           'createdAt': FieldValue.serverTimestamp(),
         });
       } catch (firestoreError) {
-        print('Error creating Firestore user document: $firestoreError');
+        debugPrint('Error creating Firestore user document: $firestoreError');
         // Delete the auth user if we can't create the Firestore record
         try {
           await user.delete();

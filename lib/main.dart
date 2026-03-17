@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'app.dart';
@@ -12,23 +13,32 @@ import 'providers/notification_provider.dart';
 import 'core/navigation.dart';
 import 'services/notification_service.dart';
 import 'services/local_notification_service.dart';
-import 'dart:io' show Platform;
 import 'providers/post_provider.dart';
 import 'providers/image_files_provider.dart';
 
+bool get _isMobileTarget {
+  if (kIsWeb) return false;
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.android || TargetPlatform.iOS => true,
+    _ => false,
+  };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('DEBUG_PROOF: main() entered');
 
   // Lock orientation to portrait only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  debugPrint('DEBUG_PROOF: orientation lock configured');
 
   bool firebaseReady = false;
   String? firebaseError;
   try {
-    print('Starting Firebase initialization...');
+    debugPrint('Starting Firebase initialization...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     ).timeout(
@@ -37,14 +47,14 @@ void main() async {
         throw FirebaseException(plugin: 'firebase_core', message: 'Firebase initialization timeout');
       }
     );
-    print('Firebase initialization successful!');
+    debugPrint('Firebase initialization successful!');
     firebaseReady = true;
   } catch (e) {
     // capture the error and prevent falling back to insecure mock auth
     firebaseReady = false;
     firebaseError = e.toString();
     // ignore: avoid_print
-    print('Firebase.initializeApp() error: $firebaseError');
+    debugPrint('Firebase.initializeApp() error: $firebaseError');
   }
 
   if (!firebaseReady) {
@@ -91,25 +101,30 @@ void main() async {
   }
 
   // Firebase initialized successfully -> run the real app with real providers
-  print('Starting SportiQ app...');
+  debugPrint('Starting SportiQ app...');
   
   // Initialize local notifications (for static timer-based notifications)
   try {
     await LocalNotificationService.instance.initialize();
+    debugPrint('DEBUG_PROOF: LocalNotificationService.initialize() completed');
     // Schedule demo periodic notification every 1 minute only on mobile platforms
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (_isMobileTarget) {
       await LocalNotificationService.instance.schedulePeriodicNotification();
+      debugPrint('DEBUG_PROOF: periodic local notification scheduled for mobile target');
     }
   } catch (e) {
-    print('Warning: LocalNotificationService init failed: $e');
+    debugPrint('Warning: LocalNotificationService init failed: $e');
   }
   
   // Initialize Firebase notifications (Lab 8) and pass navigator key for tap navigation
   try {
     await NotificationService.instance.initialize(appNavigatorKey);
+    debugPrint('DEBUG_PROOF: NotificationService.initialize() completed');
   } catch (e) {
-    print('Warning: NotificationService init failed: $e');
+    debugPrint('Warning: NotificationService init failed: $e');
   }
+
+  debugPrint('DEBUG_PROOF: runApp() about to execute');
 
   runApp(
     MultiProvider(

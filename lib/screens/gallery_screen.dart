@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -16,21 +17,31 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   final ImagePicker _picker = ImagePicker();
 
+  bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
   Future<void> pickMultiple() async {
-    final status = await Permission.photos.request();
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gallery permission denied')));
-      return;
+    // Capture context-dependent objects before async gaps
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (!_isDesktop) {
+      final status = await Permission.photos.request();
+      if (!mounted) return;
+      if (!status.isGranted) {
+        messenger.showSnackBar(const SnackBar(content: Text('Gallery permission denied')));
+        return;
+      }
     }
 
     try {
-      final List<XFile>? picked = await _picker.pickMultiImage(imageQuality: 85);
-      if (picked != null && picked.isNotEmpty) {
+      final List<XFile> picked = await _picker.pickMultiImage(imageQuality: 85);
+      if (!mounted) return;
+      if (picked.isNotEmpty) {
         final files = picked.map((x) => File(x.path)).toList();
         Provider.of<ImageFilesProvider>(context, listen: false).addAll(files);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking images: $e')));
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('Error picking images: $e')));
     }
   }
 

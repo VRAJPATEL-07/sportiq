@@ -53,7 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      print('DEBUG: Registering new user with role: $_selectedRole');
+      debugPrint('DEBUG: Registering new user with role: $_selectedRole');
       final authService = Provider.of<IAuthService>(context, listen: false);
       final authState = await authService.register(
         name: _nameCtrl.text.trim(),
@@ -63,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       if (!mounted) return;
       
-      print('DEBUG: Registration successful with role: ${authState.role}');
+      debugPrint('DEBUG: Registration successful with role: ${authState.role}');
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -76,10 +76,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Future.delayed(const Duration(milliseconds: 500), () {
         if (!mounted) return;
         if (authState.role == 'admin') {
-          print('DEBUG: Redirecting to admin dashboard');
+          debugPrint('DEBUG: Redirecting to admin dashboard');
           Navigator.pushReplacementNamed(context, '/admin');
         } else {
-          print('DEBUG: Redirecting to student dashboard');
+          debugPrint('DEBUG: Redirecting to student dashboard');
           Navigator.pushReplacementNamed(context, '/student');
         }
       });
@@ -128,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -161,9 +161,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.05),
+                    color: Colors.blue.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                   ),
                   child: const Text(
                     'Accounts created here are Student accounts by default. Admins must be assigned manually in Firestore by an existing admin.',

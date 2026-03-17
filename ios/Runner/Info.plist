@@ -47,7 +47,12 @@
 	<true/>
 	<!-- LAB 8: Camera permission for QR scanner -->
 	<key>NSCameraUsageDescription</key>
-	<string>SportiQ needs camera access to scan equipment QR codes</string>
+	<string>SportiQ needs camera access to scan equipment QR codes and take equipment photos</string>
+	<!-- Photo library access for picking equipment images -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SportiQ needs access to your photo library to select equipment images</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SportiQ needs permission to save photos to your library</string>
 	<!-- LAB 8: Notification permission (iOS 10+) -->
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>

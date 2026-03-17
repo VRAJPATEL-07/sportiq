@@ -20,10 +20,11 @@ class SpeedDialFAB extends StatelessWidget {
           child: const Icon(Icons.call),
           label: 'Call admin',
           onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
             try {
               await LauncherService.instance.makeCall(phone: adminPhone);
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Call failed: $e')));
+              messenger.showSnackBar(SnackBar(content: Text('Call failed: $e')));
             }
           },
         ),
@@ -31,10 +32,11 @@ class SpeedDialFAB extends StatelessWidget {
           child: const Icon(Icons.email),
           label: 'Email admin',
           onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
             try {
               await LauncherService.instance.sendEmail(toEmail: adminEmail, subject: 'SportiQ Inquiry', body: 'Hello Admin');
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Email failed: $e')));
+              messenger.showSnackBar(SnackBar(content: Text('Email failed: $e')));
             }
           },
         ),
@@ -42,10 +44,11 @@ class SpeedDialFAB extends StatelessWidget {
           child: const Icon(Icons.sms),
           label: 'Send SMS',
           onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
             try {
               await LauncherService.instance.sendSms(to: adminPhone, body: 'Friendly reminder about equipment');
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SMS failed: $e')));
+              messenger.showSnackBar(SnackBar(content: Text('SMS failed: $e')));
             }
           },
         ),

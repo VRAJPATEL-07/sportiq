@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -14,13 +14,24 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// - Singleton pattern for single instance
 /// - Android channel configuration with high importance
 /// - Sound and vibration support
-/// - Cross-platform (Android, iOS, macOS, Windows, Linux)
+/// - Cross-platform (Android, iOS, macOS, Linux)
 class LocalNotificationService {
   LocalNotificationService._private();
   static final LocalNotificationService instance = LocalNotificationService._private();
 
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+
+  bool get _supportsLocalNotifications {
+    if (kIsWeb) return false;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.macOS ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+  }
 
   /// Initialize local notifications
   /// Sets up Android notification channel and initialization settings
@@ -29,6 +40,11 @@ class LocalNotificationService {
   Future<void> initialize() async {
     if (_initialized) {
       debugPrint('LocalNotificationService already initialized');
+      return;
+    }
+
+    if (!_supportsLocalNotifications) {
+      debugPrint('Local notifications are not enabled for this platform');
       return;
     }
 
@@ -52,11 +68,16 @@ class LocalNotificationService {
         requestSoundPermission: true,
       );
 
-      // Combine all platform settings
+      const LinuxInitializationSettings linuxSettings = LinuxInitializationSettings(
+        defaultActionName: 'Open notification',
+      );
+
+      // Combine all platform settings (no Windows - not supported in this version)
       final InitializationSettings initSettings = InitializationSettings(
         android: androidSettings,
         iOS: iosSettings,
         macOS: macosSettings,
+        linux: linuxSettings,
       );
 
       // Initialize the plugin
@@ -69,7 +90,8 @@ class LocalNotificationService {
       await _createAndroidNotificationChannel();
 
       // Request permissions for iOS 10+
-      if (Platform.isIOS || Platform.isMacOS) {
+        if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
         await _localNotifications
             .resolvePlatformSpecificImplementation<
                 IOSFlutterLocalNotificationsPlugin>()
@@ -152,6 +174,7 @@ class LocalNotificationService {
     required String body,
     String? payload,
   }) async {
+    if (!_supportsLocalNotifications) return;
     try {
       final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         'sportiq_notifications',
@@ -199,6 +222,7 @@ class LocalNotificationService {
 
   /// Cancel a notification
   Future<void> cancelNotification(int id) async {
+    if (!_supportsLocalNotifications) return;
     try {
       await _localNotifications.cancel(id);
       debugPrint('Notification $id cancelled');
@@ -209,6 +233,7 @@ class LocalNotificationService {
 
   /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
+    if (!_supportsLocalNotifications) return;
     try {
       await _localNotifications.cancelAll();
       debugPrint('All notifications cancelled');
@@ -222,6 +247,7 @@ class LocalNotificationService {
   /// Use a small interval (1 minute) for demo purposes. In production be mindful
   /// of platform battery constraints and user expectations.
   Future<void> schedulePeriodicNotification({int id = 0, String title = 'Check your borrowed equipment', String body = 'Reminder to check borrowed equipment', Duration interval = const Duration(minutes: 1)}) async {
+    if (!_supportsLocalNotifications) return;
     try {
       // The plugin offers predefined repeat intervals; for custom minute intervals
       // we use a periodic `show` with the closest match. For flexibility we call

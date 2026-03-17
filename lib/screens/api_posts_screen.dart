@@ -27,7 +27,7 @@ class _ApiPostsScreenState extends State<ApiPostsScreen> {
         if (p.errorMessage != null) return _errorView(context, p.errorMessage!);
         return ListView.separated(
           itemCount: p.posts.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final post = p.posts[i];
             return ListTile(

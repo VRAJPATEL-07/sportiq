@@ -32,6 +32,7 @@ class _ApiPostsScreenState extends State<ApiPostsScreen> {
     super.initState();
     // LAB 7: Fetch posts when screen initializes
     Future.microtask(() {
+      if (!mounted) return;
       context.read<PostProvider>().fetchPosts();
     });
   }

@@ -5,16 +5,17 @@
 // by providing real Firebase config values for each platform.
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) return web;
-    if (Platform.isAndroid) return android;
-    if (Platform.isIOS || Platform.isMacOS) return ios;
-    if (Platform.isWindows) return windows;
-    return android;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => android,
+      TargetPlatform.iOS || TargetPlatform.macOS => ios,
+      TargetPlatform.windows => windows,
+      _ => android,
+    };
   }
 
   static const FirebaseOptions android = FirebaseOptions(

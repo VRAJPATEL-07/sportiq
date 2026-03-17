@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    debugPrint('DEBUG_PROOF: Login button clicked');
     setState(() {
       _emailError = null;
       _passwordError = null;
@@ -71,6 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!isValid) {
+      debugPrint('DEBUG_PROOF: Login validation failed');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fix the errors above'),
@@ -84,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Call centralized auth service to validate role
     setState(() => _isLoading = true);
     try {
+      debugPrint('DEBUG_PROOF: Login request started for ${_emailController.text.trim()}');
       final authService = Provider.of<IAuthService>(context, listen: false);
       final authState = await authService.login(email: _emailController.text.trim(), password: _passwordController.text);
       if (!mounted) return;
@@ -98,19 +101,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
-        print('DEBUG: Login successful. Auth state role: ${authState.role}');
+        debugPrint('DEBUG: Login successful. Auth state role: ${authState.role}');
         if (authState.role == 'admin') {
-          print('DEBUG: Redirecting to admin dashboard via named route');
+          debugPrint('DEBUG: Redirecting to admin dashboard via named route');
           Navigator.pushReplacementNamed(context, '/admin');
         } else if (authState.role == 'student') {
-          print('DEBUG: Redirecting to student dashboard via named route');
+          debugPrint('DEBUG: Redirecting to student dashboard via named route');
           Navigator.pushReplacementNamed(context, '/student');
         } else {
-          print('DEBUG: Unknown role, redirecting to unauthorized');
+          debugPrint('DEBUG: Unknown role, redirecting to unauthorized');
           Navigator.pushReplacementNamed(context, '/unauthorized');
         }
       });
     } on FirebaseAuthException catch (e) {
+      debugPrint('DEBUG_PROOF: FirebaseAuthException during login: ${e.code}');
       setState(() => _isLoading = false);
       String message = 'Authentication error';
       switch (e.code) {
@@ -138,6 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $message'), backgroundColor: Colors.red));
     } catch (e) {
+      debugPrint('DEBUG_PROOF: General login exception: $e');
       setState(() => _isLoading = false);
       if (!mounted) return;
       final raw = e.toString();
@@ -177,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -411,12 +416,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                 Future.delayed(const Duration(milliseconds: 400), () {
                                   if (!mounted) return;
-                                  print('DEBUG: Google Sign-In complete. Auth state role: ${authState.role}');
+                                  debugPrint('DEBUG: Google Sign-In complete. Auth state role: ${authState.role}');
                                   if (authState.role == 'admin') {
-                                    print('DEBUG: Redirecting to admin dashboard');
+                                    debugPrint('DEBUG: Redirecting to admin dashboard');
                                     Navigator.pushReplacementNamed(context, '/admin');
                                   } else {
-                                    print('DEBUG: Redirecting to student dashboard');
+                                    debugPrint('DEBUG: Redirecting to student dashboard');
                                     Navigator.pushReplacementNamed(context, '/student');
                                   }
                                 });
@@ -469,9 +474,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                   ),
                   child: const Text(
                     '⚡ Fast, secure & auto-assigns Student role',
@@ -532,9 +537,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

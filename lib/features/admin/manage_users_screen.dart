@@ -256,7 +256,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                               Chip(
                                 label: Text(user['role'].toUpperCase()),
                                 backgroundColor:
-                                    user['role'] == 'admin' ? Colors.red.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
+                                    user['role'] == 'admin' ? Colors.red.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2),
                               ),
                             ],
                           ),

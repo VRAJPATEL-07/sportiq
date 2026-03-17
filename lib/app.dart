@@ -6,10 +6,12 @@ import 'features/auth/splash_screen.dart';
 import 'auth/auth_service_base.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
+import 'features/student/booking_history_screen.dart';
 import 'features/student/student_dashboard.dart';
 import 'features/admin/admin_dashboard.dart';
 import 'features/admin/add_edit_equipment_screen.dart';
 import 'features/admin/manage_users_screen.dart';
+import 'features/admin/admin_reports_screen.dart';
 import 'features/equipment/equipment_list.dart';
 import 'features/equipment/scan_equipment_screen.dart';
 import 'features/equipment/borrow_confirmation_screen.dart';
@@ -52,10 +54,10 @@ class _SportiQAppState extends State<SportiQApp> {
       Route<dynamic> onGenerate(RouteSettings settings) {
         // Role guard helper
         // Debug: log current auth state when routing
-        print('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
-        final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users'};
-        final requiresStudent = <String>{'/student', '/my_borrowed'};
-        final requiresLogin = <String>{'/equipment', '/scan', '/equipment_detail', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications'};
+        debugPrint('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
+        final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users', '/reports'};
+        final requiresStudent = <String>{'/student', '/my_borrowed', '/booking_history'};
+        final requiresLogin = <String>{'/equipment', '/scan', '/equipment_detail', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications', '/booking_history'};
 
         if (requiresAdmin.contains(settings.name)) {
           // Use FirebaseAuth directly for logged-in check
@@ -64,7 +66,7 @@ class _SportiQAppState extends State<SportiQApp> {
           }
           // Give the auth service a moment to update after login
           if (auth.current.role != 'admin') {
-            print('DEBUG: Non-admin tried to access admin route ${settings.name}. Current role: ${auth.current.role}');
+            debugPrint('DEBUG: Non-admin tried to access admin route ${settings.name}. Current role: ${auth.current.role}');
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresStudent.contains(settings.name)) {
@@ -73,7 +75,7 @@ class _SportiQAppState extends State<SportiQApp> {
           }
           // Allow student access, also allow admin to access student routes for testing
           if (auth.current.role != 'student' && auth.current.role != 'admin') {
-            print('DEBUG: Non-student/admin tried to access student route ${settings.name}. Current role: ${auth.current.role}');
+            debugPrint('DEBUG: Non-student/admin tried to access student route ${settings.name}. Current role: ${auth.current.role}');
             return MaterialPageRoute(builder: (_) => const UnauthorizedScreen());
           }
         } else if (requiresLogin.contains(settings.name)) {
@@ -123,8 +125,12 @@ class _SportiQAppState extends State<SportiQApp> {
             return MaterialPageRoute(builder: (_) => AddEditEquipmentScreen());
           case '/manage_users':
             return MaterialPageRoute(builder: (_) => ManageUsersScreen());
+          case '/reports':
+            return MaterialPageRoute(builder: (_) => const AdminReportsScreen());
           case '/my_borrowed':
             return MaterialPageRoute(builder: (_) => MyBorrowedItemsScreen());
+          case '/booking_history':
+            return MaterialPageRoute(builder: (_) => const BookingHistoryScreen());
           case '/penalty_details':
             return MaterialPageRoute(builder: (_) => PenaltyDetailsScreen());
           case '/profile':

@@ -20,6 +20,7 @@ class AppRoutes {
   static const String studentDashboard = '/student';
   static const String profile = '/profile';
   static const String myBorrowed = '/my_borrowed';
+  static const String bookingHistory = '/booking_history';
   static const String penaltyDetails = '/penalty_details';
 
   // Equipment routes
@@ -48,6 +49,7 @@ class AppRoutes {
     profile,
     studentDashboard,
     myBorrowed,
+    bookingHistory,
     adminDashboard,
     addEquipment,
     manageUsers,
@@ -65,6 +67,7 @@ class AppRoutes {
   static const Set<String> requiresStudent = {
     studentDashboard,
     myBorrowed,
+    bookingHistory,
   };
 
   /// Public routes (no authentication required)

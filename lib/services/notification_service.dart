@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -26,13 +26,36 @@ class NotificationService {
 
   bool _initialized = false;
 
+  bool get _supportsPushSetup {
+    if (kIsWeb) return false;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.macOS => true,
+      _ => false,
+    };
+  }
+
   Future<void> initialize(GlobalKey<NavigatorState> navigatorKey) async {
     if (_initialized) return;
+
+    if (!_supportsPushSetup) {
+      debugPrint('Push notification initialization skipped on this platform');
+      _initialized = true;
+      return;
+    }
 
     // Setup local notifications (Android and iOS)
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
-    final InitializationSettings initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    const DarwinInitializationSettings macosSettings = DarwinInitializationSettings();
+    const LinuxInitializationSettings linuxSettings = LinuxInitializationSettings(
+      defaultActionName: 'Open notification',
+    );
+    final InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+      macOS: macosSettings,
+      linux: linuxSettings,
+    );
 
     await _local.initialize(initSettings, onDidReceiveNotificationResponse: (response) {
       final payload = response.payload;
@@ -42,7 +65,8 @@ class NotificationService {
     });
 
     // Request notification permissions (iOS/macOS)
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
       await _messaging.requestPermission(alert: true, badge: true, sound: true);
     }
 
@@ -78,6 +102,7 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification({required String title, required String body, String? payload}) async {
+    if (!_supportsPushSetup) return;
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'default_channel',
       'Default',
@@ -87,7 +112,13 @@ class NotificationService {
     );
     const NotificationDetails details = NotificationDetails(android: androidDetails);
     try {
-      await _local.show(0, title, body, details, payload: payload);
+      await _local.show(
+        0,
+        title,
+        body,
+        details,
+        payload: payload,
+      );
     } catch (e) {
       // ignore
     }
@@ -115,6 +146,7 @@ class NotificationService {
     required String body,
     String payload = '',
   }) async {
+    if (!_supportsPushSetup) return;
     try {
       final details = NotificationDetails(
         android: AndroidNotificationDetails(
@@ -126,7 +158,13 @@ class NotificationService {
         ),
         iOS: const DarwinNotificationDetails(),
       );
-      await _local.show(id, title, body, details, payload: payload);
+      await _local.show(
+        id,
+        title,
+        body,
+        details,
+        payload: payload,
+      );
       debugPrint('✓ Local notification shown: $title');
     } catch (e) {
       debugPrint('Error showing notification: $e');
@@ -141,6 +179,7 @@ class NotificationService {
     required int secondsDelay,
     String payload = '',
   }) async {
+    if (!_supportsPushSetup) return;
     try {
       final location = tz.local;
       final scheduledDate = tz.TZDateTime.now(location).add(Duration(seconds: secondsDelay));
@@ -162,11 +201,10 @@ class NotificationService {
         body,
         scheduledDate,
         details,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        androidAllowWhileIdle: true,
         matchDateTimeComponents: DateTimeComponents.time,
         payload: payload,
-        androidAllowWhileIdle: true,
       );
       debugPrint('✓ Notification scheduled for $secondsDelay seconds: $title');
     } catch (e) {
@@ -176,6 +214,7 @@ class NotificationService {
 
   /// Get FCM token for Firebase Cloud Messaging testing
   Future<String?> getFCMToken() async {
+    if (!_supportsPushSetup) return null;
     try {
       final token = await _messaging.getToken();
       debugPrint('FCM Token: $token');
