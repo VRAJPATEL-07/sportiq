@@ -39,22 +39,35 @@ void main() async {
   String? firebaseError;
   try {
     debugPrint('Starting Firebase initialization...');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw FirebaseException(plugin: 'firebase_core', message: 'Firebase initialization timeout');
-      }
-    );
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw FirebaseException(plugin: 'firebase_core', message: 'Firebase initialization timeout');
+        },
+      );
+    } else {
+      debugPrint('Firebase already initialized. Reusing existing default app.');
+    }
     debugPrint('Firebase initialization successful!');
     firebaseReady = true;
   } catch (e) {
-    // capture the error and prevent falling back to insecure mock auth
-    firebaseReady = false;
-    firebaseError = e.toString();
-    // ignore: avoid_print
-    debugPrint('Firebase.initializeApp() error: $firebaseError');
+    final message = e.toString();
+    if (message.contains('duplicate-app')) {
+      // If Firebase is already initialized by an earlier path/hot-restart,
+      // proceed with the existing app instead of showing a hard failure screen.
+      debugPrint('Firebase default app already exists. Continuing with existing app.');
+      firebaseReady = true;
+      firebaseError = null;
+    } else {
+      // capture the error and prevent falling back to insecure mock auth
+      firebaseReady = false;
+      firebaseError = message;
+      // ignore: avoid_print
+      debugPrint('Firebase.initializeApp() error: $firebaseError');
+    }
   }
 
   if (!firebaseReady) {
