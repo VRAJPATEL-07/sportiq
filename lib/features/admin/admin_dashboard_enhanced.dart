@@ -219,14 +219,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.build, color: Colors.deepOrange),
-              title: const Text('Advanced Tools (Lab Demo)'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/advanced_tools');
-              },
-            ),
+            // Advanced tools removed from production admin menu
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

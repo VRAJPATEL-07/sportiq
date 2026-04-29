@@ -36,6 +36,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
+    final colorOnPrimary = Theme.of(context).colorScheme.onPrimary;
     // Guard: ensure only admins can view this screen
     if (auth.current.role != 'admin') {
       Future.microtask(() => Navigator.pushReplacementNamed(context, '/unauthorized'));
@@ -49,22 +50,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           const NotificationBellButton(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(20),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  backgroundColor: Colors.transparent,
                 ),
-                child: const Text(
-                  '👤 Admin',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
+                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                icon: Icon(Icons.admin_panel_settings, size: 18, color: colorOnPrimary),
+                label: Text('Admin', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorOnPrimary)),
               ),
             ),
           ),
@@ -162,14 +158,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Navigator.pushNamed(context, '/profile');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.build, color: Colors.deepOrange),
-              title: const Text('Advanced Tools (Lab Demo)'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/advanced_tools');
-              },
-            ),
+            // Advanced tools removed from production admin menu
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
