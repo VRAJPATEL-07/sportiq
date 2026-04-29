@@ -16,6 +16,10 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
+  int _activeBorrowings = 3;
+  int _totalBorrowings = 12;
+  int _penalties = 1;
+  double _rating = 4.8;
   @override
   void initState() {
     super.initState();
@@ -225,36 +229,102 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Welcome, Student!",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Manage your sports equipment bookings and more.",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              "Quick Actions",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GridView.count(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome
+              Text(
+                'Hello, ${auth.current.displayName ?? 'Student'}!',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      color: Colors.black87,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                auth.current.email ?? 'Manage your sports equipment bookings and more.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                    ),
+              ),
+              const SizedBox(height: 20),
+
+              // Key Metrics
+              Text(
+                'Key Metrics',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      title: 'Active Borrowings',
+                      value: '$_activeBorrowings',
+                      icon: Icons.inventory_2,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      title: 'Total Borrowed',
+                      value: '$_totalBorrowings',
+                      icon: Icons.library_books,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      title: 'Penalties',
+                      value: '$_penalties',
+                      icon: Icons.warning,
+                      color: _penalties > 0 ? Colors.red : Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      title: 'Rating',
+                      value: '$_rating/5',
+                      icon: Icons.star,
+                      color: Colors.amber,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Quick Actions
+              Text(
+                'Quick Actions',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              GridView.count(
                 crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.05,
                 children: [
                   _buildActionCard(
                     context,
                     icon: Icons.inventory,
-                    title: "View Equipment",
+                    title: 'View Equipment',
+                    color: Colors.green,
+                    subtitle: 'Browse available gear',
                     onTap: () {
                       Navigator.pushNamed(context, '/equipment');
                     },
@@ -262,7 +332,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   _buildActionCard(
                     context,
                     icon: Icons.library_books,
-                    title: "My Borrowed Items",
+                    title: 'My Borrowed Items',
+                    color: Colors.orange,
+                    subtitle: 'Manage your active loans',
                     onTap: () {
                       Navigator.pushNamed(context, '/my_borrowed');
                     },
@@ -270,53 +342,134 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   _buildActionCard(
                     context,
                     icon: Icons.history,
-                    title: "Booking History",
+                    title: 'Booking History',
+                    color: Colors.indigo,
+                    subtitle: 'View past bookings',
                     onTap: () {
                       Navigator.pushNamed(context, '/booking_history');
                     },
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.notifications_active,
-                    title: "Test Notifications",
+                    icon: Icons.person,
+                    title: 'Profile Settings',
+                    color: Colors.purple,
+                    subtitle: 'Update your account',
                     onTap: () {
-                      Navigator.pushNamed(context, '/notification_test');
+                      Navigator.pushNamed(context, '/profile');
                     },
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.pushNamed(context, '/equipment'),
+        icon: const Icon(Icons.search),
+        label: const Text('Browse Equipment'),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color.withValues(alpha: 0.08), color.withValues(alpha: 0.02)],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
             ),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color),
+            ),
+            const SizedBox(height: 4),
+            Text(title, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionCard(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildActionCard(
+      BuildContext context, {
+      required IconData icon,
+      required String title,
+      required VoidCallback onTap,
+      Color? color,
+      String? subtitle,
+    }) {
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.95, end: 1.0),
-      duration: const Duration(milliseconds: 400),
+      tween: Tween<double>(begin: 0.97, end: 1.0),
+      duration: const Duration(milliseconds: 380),
       curve: Curves.easeOut,
       builder: (context, scale, child) {
+        final cardColor = color ?? Theme.of(context).primaryColor;
         return Transform.scale(
           scale: scale,
           child: Card(
-            elevation: 4,
+            elevation: 3,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 48, color: Colors.blue),
-                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: cardColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(icon, size: 44, color: cardColor),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                       textAlign: TextAlign.center,
                     ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ],
                 ),
               ),
