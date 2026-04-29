@@ -318,12 +318,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       title: const Text('Privacy Policy'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Privacy policy will open in browser'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
+                        Navigator.pushNamed(context, '/privacy');
                       },
                     ),
                   ),
@@ -339,12 +334,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       title: const Text('Terms of Service'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Terms of service will open in browser'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
+                        Navigator.pushNamed(context, '/terms');
                       },
                     ),
                   ),

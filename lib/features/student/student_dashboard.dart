@@ -49,6 +49,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
+    final colorOnPrimary = Theme.of(context).colorScheme.onPrimary;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Student Dashboard"),
@@ -57,22 +58,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
         actions: [
           const NotificationBellButton(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(20),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  backgroundColor: Colors.transparent,
                 ),
-                child: const Text(
-                  '📚 Student',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
+                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                icon: Icon(Icons.school, size: 18, color: colorOnPrimary),
+                label: Text('Student', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorOnPrimary)),
               ),
             ),
           ),

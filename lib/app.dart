@@ -17,6 +17,8 @@ import 'features/equipment/scan_equipment_screen.dart';
 import 'features/equipment/borrow_confirmation_screen.dart';
 import 'features/student/my_borrowed_items_screen.dart';
 import 'features/student/profile_settings_screen.dart';
+import 'features/legal/privacy_policy_screen.dart';
+import 'features/legal/terms_of_service_screen.dart';
 import 'features/equipment/borrow_equipment_form.dart';
 import 'features/equipment/equipment_detail_screen.dart';
 import 'features/student/penalty_details_screen.dart';
@@ -143,6 +145,10 @@ class _SportiQAppState extends State<SportiQApp> {
               builder: (_) => const NotificationScreen(),
               settings: settings,
             );
+          case '/privacy':
+            return MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen());
+          case '/terms':
+            return MaterialPageRoute(builder: (_) => const TermsOfServiceScreen());
           case '/notification_test':
             // LAB 8: Test screen for notifications and animations
             return MaterialPageRoute(builder: (_) => const NotificationTestScreen());
