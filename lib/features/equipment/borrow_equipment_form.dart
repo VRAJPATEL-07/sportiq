@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../auth/auth_service_base.dart';
+import '../../providers/borrowing_provider.dart';
 
 class BorrowEquipmentForm extends StatefulWidget {
   final dynamic equipment; // Accept both Equipment and Map<String, dynamic>
@@ -109,10 +112,11 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate() && _agreeToTerms) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Borrow Confirmation'),
@@ -151,13 +155,15 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(dialogContext);
-                _showSuccessDialog();
+                await _borrowAndSave();
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text('Confirm Borrow'),
@@ -168,7 +174,7 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill all fields and agree to terms'),
+          content: Text('❌ Please fill all fields and agree to terms'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -176,6 +182,66 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
     }
   }
 
+  Future<void> _borrowAndSave() async {
+    try {
+      final auth = Provider.of<IAuthService>(context, listen: false);
+      final borrowingProvider = Provider.of<BorrowingProvider>(context, listen: false);
+      final equipmentId = widget.equipment['id']?.toString() ?? '';
+
+      final userId = auth.current.userId;
+      debugPrint('🔍 DEBUG _borrowAndSave: userId=$userId, displayName=${auth.current.displayName}, email=${auth.current.email}');
+      
+      if (userId == null || userId.isEmpty || equipmentId.isEmpty) {
+        throw Exception('Missing user ID or equipment ID');
+      }
+
+      // CRITICAL: Ensure userName is always set - NEVER fallback to "Unknown User"
+      final userName = (auth.current.displayName != null && auth.current.displayName!.trim().isNotEmpty)
+          ? auth.current.displayName!.trim()
+          : (auth.current.email != null && auth.current.email!.isNotEmpty 
+              ? auth.current.email!.split('@').first.toUpperCase() 
+              : 'User');
+      
+      debugPrint('✅ userName to be written: $userName');
+
+      // Get penalty from equipment data
+      double? penalty;
+      if (widget.equipment['penalty'] != null) {
+        penalty = (widget.equipment['penalty'] as num).toDouble();
+      }
+
+      // Save borrowing record to Firestore
+      debugPrint('📝 Calling borrowEquipment with userName=$userName');
+      await borrowingProvider.borrowEquipment(
+        userId: userId,
+        userName: userName,
+        equipmentId: equipmentId,
+        equipmentName: _getEquipmentName(),
+        quantity: _quantity,
+        borrowDate: _borrowDate ?? DateTime.now(),
+        returnDate: _returnDate ?? DateTime.now().add(const Duration(days: 1)),
+        purpose: _purpose ?? 'Not specified',
+        penalty: penalty,
+      );
+      
+      debugPrint('✅ Borrow successful, showing success dialog');
+
+      if (mounted) {
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      debugPrint('❌ Error in _borrowAndSave: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -212,6 +278,10 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                   ),
                   const SizedBox(height: 8),
                   Text('Ref #: BRW-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
+                  const SizedBox(height: 4),
+                  Text('Equipment: ${_getEquipmentName()}'),
+                  const SizedBox(height: 4),
+                  Text('Quantity: $_quantity'),
                   const SizedBox(height: 4),
                   Text('Return Date: ${_formatDate(_returnDate)}'),
                   const SizedBox(height: 8),

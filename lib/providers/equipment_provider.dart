@@ -10,17 +10,13 @@ import '../features/equipment/dev_seed.dart';
 /// Keep reads/writes minimal to remain within Firebase Spark free tier.
 class EquipmentProvider extends ChangeNotifier {
   EquipmentProvider._private() {
-    try {
-      _listen();
-    } catch (e) {
-      // Firebase not initialized; skip listen. Mock will be used instead.
-    }
   }
 
   static final EquipmentProvider instance = EquipmentProvider._private();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
+  bool _started = false;
 
   final List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> get items => List.unmodifiable(_items);
@@ -32,6 +28,17 @@ class EquipmentProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  void ensureListening() {
+    if (_started) return;
+    _started = true;
+    try {
+      _listen();
+    } catch (e) {
+      _started = false;
+      debugPrint('❌ EquipmentProvider listen failed: $e');
+    }
+  }
+
   void _listen() {
     _sub = _firestore.collection('equipment').orderBy('createdAt', descending: true).snapshots().listen((snapshot) {
       _error = null;
@@ -40,16 +47,6 @@ class EquipmentProvider extends ChangeNotifier {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
         _items.add(data);
-      }
-      
-      // Auto-seed if collection is empty
-      if (_items.isEmpty) {
-        debugPrint('📦 Equipment collection empty. Auto-seeding demo data...');
-        seedSampleEquipment().then((_) {
-          debugPrint('✅ Demo equipment seeded successfully');
-        }).catchError((e) {
-          debugPrint('❌ Auto-seed failed: $e');
-        });
       }
       
       notifyListeners();

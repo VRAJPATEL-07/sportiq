@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
 import '../../providers/equipment_provider.dart';
-import 'dev_seed.dart';
 
 class EquipmentList extends StatefulWidget {
   const EquipmentList({super.key});
@@ -14,17 +13,17 @@ class EquipmentList extends StatefulWidget {
 }
 
 class _EquipmentListState extends State<EquipmentList> {
-  /// Fallback demo data shown when Firestore is unavailable or empty
-  static const List<Map<String, dynamic>> _demoEquipment = [
-    {'name': 'Basketball', 'category': 'Ball Sports', 'quantity': 10, 'available': 8},
-    {'name': 'Soccer Ball', 'category': 'Ball Sports', 'quantity': 15, 'available': 12},
-    {'name': 'Tennis Racket', 'category': 'Racket Sports', 'quantity': 8, 'available': 6},
-    {'name': 'Badminton Set', 'category': 'Racket Sports', 'quantity': 12, 'available': 10},
-    {'name': 'Volleyball', 'category': 'Ball Sports', 'quantity': 6, 'available': 5},
-    {'name': 'Cricket Bat', 'category': 'Bat Sports', 'quantity': 5, 'available': 4},
-    {'name': 'Roller Skates', 'category': 'Accessories', 'quantity': 4, 'available': 2},
-    {'name': 'Skateboard', 'category': 'Accessories', 'quantity': 3, 'available': 1},
-  ];
+  /// All equipment data comes from Firestore via EquipmentProvider
+  /// No hardcoded demo data - everything is dynamic
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<EquipmentProvider>().ensureListening();
+    });
+  }
 
   IconData _iconForCategory(String? category) {
     switch ((category ?? '').toLowerCase()) {
@@ -40,10 +39,8 @@ class _EquipmentListState extends State<EquipmentList> {
     final auth = Provider.of<IAuthService>(context);
     final equipmentProvider = Provider.of<EquipmentProvider>(context);
 
-    // Use live Firestore data if available, otherwise fall back to demo data
-    final firestoreItems = equipmentProvider.items;
-    final displayItems = firestoreItems.isNotEmpty ? firestoreItems : _demoEquipment;
-    final usingDemo = firestoreItems.isEmpty;
+    // Always use live Firestore data only - no hardcoded fallbacks
+    final equipmentItems = equipmentProvider.items;
 
     return Scaffold(
       appBar: AppBar(
@@ -76,27 +73,6 @@ class _EquipmentListState extends State<EquipmentList> {
             ),
           ),
           IconButton(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              try {
-                await seedSampleEquipment();
-                if (mounted) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('✅ Demo equipment seeded to Firestore')),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('❌ Seed failed: $e')),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.cloud_upload),
-            tooltip: 'Seed demo equipment to Firestore',
-          ),
-          IconButton(
             onPressed: () => Navigator.pushNamed(context, '/scan'),
             icon: const Icon(Icons.qr_code_scanner),
             tooltip: 'Scan Equipment',
@@ -123,34 +99,32 @@ class _EquipmentListState extends State<EquipmentList> {
                 ],
               ),
             ),
-          // Show banner when displaying demo data
-          if (usingDemo && equipmentProvider.error == null && !equipmentProvider.isLoading)
-            Container(
-              color: Colors.blue.shade50,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Showing demo data. Tap the cloud icon to seed real data.',
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          // Equipment list
+          // Equipment list from Firestore
           if (equipmentProvider.isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (equipmentItems.isEmpty)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inventory_2, size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No equipment available',
+                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+            )
           else
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: displayItems.length,
+                itemCount: equipmentItems.length,
                 itemBuilder: (context, index) {
-                  final item = displayItems[index];
+                  final item = equipmentItems[index];
                   final qty = (item['quantity'] as int?) ?? 0;
                   final avail = (item['available'] as int?) ?? qty;
                   final isAvailable = avail > 0;
@@ -228,17 +202,19 @@ class _EquipmentListState extends State<EquipmentList> {
                 ),
               ],
             ),
-            trailing: isAvailable
+            trailing: !isAdmin && isAvailable
                 ? ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/borrow_form',
                         arguments: {'equipment': item}),
                     icon: const Icon(Icons.shopping_cart, size: 16),
                     label: const Text('Borrow'),
                   )
-                : Chip(
+              : (!isAdmin && !isAvailable)
+              ? Chip(
                     label: const Text('Out of Stock'),
                     backgroundColor: Colors.red.withValues(alpha: 0.2),
-                  ),
+                 )
+              : null,
             onTap: () => _showEquipmentDetails(item, available, quantity),
           ),
           if (isAdmin)
@@ -342,7 +318,7 @@ class _EquipmentListState extends State<EquipmentList> {
             ],
             if (item['penalty'] != null) ...[
               const SizedBox(height: 8),
-              Text('Penalty/Day: \$${item['penalty']}'),
+              Text('Penalty/Day: ₹${item['penalty']}'),
             ],
           ],
         ),

@@ -11,11 +11,19 @@ import 'auth_state.dart';
 /// Do NOT enable billing; do not rely on paid services. Keep reads/writes minimal.
 class AuthService extends IAuthService {
   AuthService._private() {
-    // Try to initialize the Firebase listener; if Firebase is not initialized, skip it.
-    try {
-      _auth.authStateChanges().listen(_onAuthStateChanged);
-    } catch (e) {
-      // Firebase not ready; will be initialized later if needed.
+    // Avoid attaching Firebase listeners during app startup on desktop.
+    // The state is refreshed explicitly on login and can be refreshed later if needed.
+    final user = _auth.currentUser;
+    if (user != null) {
+      _state = AuthState(
+        userId: user.uid,
+        email: user.email,
+        displayName: (user.displayName != null && user.displayName!.trim().isNotEmpty)
+            ? user.displayName!.trim()
+            : ((user.email?.isNotEmpty ?? false) ? user.email!.split('@').first.toUpperCase() : 'User'),
+        role: 'student',
+        loggedIn: true,
+      );
     }
   }
 
@@ -72,10 +80,15 @@ class AuthService extends IAuthService {
         }
       }
 
+      // Ensure displayName is never empty - use email prefix as fallback
+      final displayName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+          ? user.displayName!.trim()
+          : ((user.email?.isNotEmpty ?? false) ? user.email!.split('@').first.toUpperCase() : 'User');
+      
       _state = AuthState(
         userId: user.uid,
         email: user.email,
-        displayName: user.displayName ?? 'User',
+        displayName: displayName,
         role: role,
         loggedIn: true,
       );
@@ -84,10 +97,15 @@ class AuthService extends IAuthService {
     } catch (e) {
       debugPrint('ERROR in _onAuthStateChanged: $e');
       // If Firestore read fails, default to student but still signed in.
+      // Ensure displayName is never empty - use email prefix as fallback
+      final displayName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+          ? user.displayName!.trim()
+          : ((user.email?.isNotEmpty ?? false) ? user.email!.split('@').first.toUpperCase() : 'User');
+      
       _state = AuthState(
         userId: user.uid,
         email: user.email,
-        displayName: user.displayName ?? 'User',
+        displayName: displayName,
         role: 'student',
         loggedIn: true,
       );

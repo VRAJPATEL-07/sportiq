@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification_bell_button.dart';
+import 'borrowing_notifications_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -143,6 +144,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.notifications_active),
+              title: const Text('Borrowing Notifications'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BorrowingNotificationsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.bar_chart),
               title: const Text('Reports'),
               onTap: () {
@@ -213,6 +227,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     subtitle: "Edit or remove existing equipment",
                     onTap: () {
                       Navigator.pushNamed(context, '/equipment');
+                    },
+                  ),
+                  _buildManagementTile(
+                    context,
+                    icon: Icons.notifications_active,
+                    title: "Borrowing Notifications",
+                    subtitle: "Monitor active borrowings and notify users",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BorrowingNotificationsScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildManagementTile(

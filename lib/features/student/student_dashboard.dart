@@ -1,8 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import '../../providers/borrowing_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification_bell_button.dart';
 
@@ -16,10 +18,6 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
-  int _activeBorrowings = 3;
-  int _totalBorrowings = 12;
-  int _penalties = 1;
-  double _rating = 4.8;
   @override
   void initState() {
     super.initState();
@@ -28,6 +26,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         context.read<NotificationProvider>().startNotificationTimer();
+        final auth = context.read<IAuthService>();
+        final userId = auth.current.userId;
+        if (userId != null && userId.isNotEmpty) {
+          context.read<BorrowingProvider>().initializeForUser(userId);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Welcome to SportiQ Dashboard!'),
@@ -50,6 +53,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
     final colorOnPrimary = Theme.of(context).colorScheme.onPrimary;
+    final userId = auth.current.userId;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Student Dashboard"),
@@ -176,7 +181,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 Navigator.pushNamed(context, '/profile');
               },
             ),
-            // Advanced tools removed from user menu
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
@@ -225,143 +229,182 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome
-              Text(
-                'Hello, ${auth.current.displayName ?? 'Student'}!',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                      color: Colors.black87,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                auth.current.email ?? 'Manage your sports equipment bookings and more.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
-              ),
-              const SizedBox(height: 20),
+      body: userId == null || userId.isEmpty
+          ? const Center(child: Text('Please log in to view dashboard metrics'))
+          : Consumer<BorrowingProvider>(
+              builder: (context, borrowingProvider, _) {
+                final activeItems = borrowingProvider.borrowedItems;
+                final activeBorrowings = activeItems.length;
+                final overdueCount = activeItems.where(_isActiveBorrowingOverdue).length;
+                final penaltyAmount = activeItems.fold<double>(0, (total, item) {
+                  if (!_isActiveBorrowingOverdue(item)) return total;
+                  final penalty = (item['penalty'] as num?)?.toDouble() ?? 0.0;
+                  return total + penalty;
+                });
 
-              // Key Metrics
-              Text(
-                'Key Metrics',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'Active Borrowings',
-                      value: '$_activeBorrowings',
-                      icon: Icons.inventory_2,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'Total Borrowed',
-                      value: '$_totalBorrowings',
-                      icon: Icons.library_books,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'Penalties',
-                      value: '$_penalties',
-                      icon: Icons.warning,
-                      color: _penalties > 0 ? Colors.red : Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCard(
-                      title: 'Rating',
-                      value: '$_rating/5',
-                      icon: Icons.star,
-                      color: Colors.amber,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userId)
+                      .collection('borrowings_history')
+                      .snapshots(),
+                  builder: (context, historySnapshot) {
+                    final historyCount = historySnapshot.data?.docs.length ?? 0;
+                    final totalBorrowed = activeBorrowings + historyCount;
+                    final penaltyCount = overdueCount;
+                    final rating = (5.0 - (penaltyCount * 0.4) - (overdueCount * 0.1)).clamp(1.0, 5.0);
 
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.05,
-                children: [
-                  _buildActionCard(
-                    context,
-                    icon: Icons.inventory,
-                    title: 'View Equipment',
-                    color: Colors.green,
-                    subtitle: 'Browse available gear',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/equipment');
-                    },
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.library_books,
-                    title: 'My Borrowed Items',
-                    color: Colors.orange,
-                    subtitle: 'Manage your active loans',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/my_borrowed');
-                    },
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.history,
-                    title: 'Booking History',
-                    color: Colors.indigo,
-                    subtitle: 'View past bookings',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/booking_history');
-                    },
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.person,
-                    title: 'Profile Settings',
-                    color: Colors.purple,
-                    subtitle: 'Update your account',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/profile');
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
+                    return SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello, ${auth.current.displayName ?? 'Student'}!',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                    color: Colors.black87,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              auth.current.email ?? 'Manage your sports equipment bookings and more.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Key Metrics',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMetricCard(
+                                    title: 'Active Borrowings',
+                                    value: '$activeBorrowings',
+                                    icon: Icons.inventory_2,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildMetricCard(
+                                    title: 'Total Borrowed',
+                                    value: '$totalBorrowed',
+                                    icon: Icons.library_books,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMetricCard(
+                                    title: 'Penalties',
+                                    value: '₹${penaltyAmount.toStringAsFixed(0)}',
+                                    icon: Icons.warning,
+                                    color: penaltyCount > 0 ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildMetricCard(
+                                    title: 'Rating',
+                                    value: '${rating.toStringAsFixed(1)}/5',
+                                    icon: Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (borrowingProvider.isLoading || historySnapshot.connectionState == ConnectionState.waiting)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Row(
+                                  children: const [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Refreshing dashboard metrics...'),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Quick Actions',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            GridView.count(
+                              crossAxisCount: 2,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1.05,
+                              children: [
+                                _buildActionCard(
+                                  context,
+                                  icon: Icons.inventory,
+                                  title: 'View Equipment',
+                                  color: Colors.green,
+                                  subtitle: 'Browse available gear',
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/equipment');
+                                  },
+                                ),
+                                _buildActionCard(
+                                  context,
+                                  icon: Icons.library_books,
+                                  title: 'My Borrowed Items',
+                                  color: Colors.orange,
+                                  subtitle: 'Manage your active loans',
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/my_borrowed');
+                                  },
+                                ),
+                                _buildActionCard(
+                                  context,
+                                  icon: Icons.history,
+                                  title: 'Booking History',
+                                  color: Colors.indigo,
+                                  subtitle: 'View past bookings',
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/booking_history');
+                                  },
+                                ),
+                                _buildActionCard(
+                                  context,
+                                  icon: Icons.person,
+                                  title: 'Profile Settings',
+                                  color: Colors.purple,
+                                  subtitle: 'Update your account',
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/profile');
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, '/equipment'),
         icon: const Icon(Icons.search),
@@ -411,6 +454,27 @@ class _StudentDashboardState extends State<StudentDashboard> {
         ),
       ),
     );
+  }
+
+  bool _isActiveBorrowingOverdue(Map<String, dynamic> item) {
+    final status = item['status']?.toString().toLowerCase() ?? 'borrowed';
+    if (status == 'returned') {
+      return false;
+    }
+
+    final returnDateRaw = item['returnDate'];
+    DateTime? returnDate;
+    if (returnDateRaw is Timestamp) {
+      returnDate = returnDateRaw.toDate();
+    } else if (returnDateRaw is DateTime) {
+      returnDate = returnDateRaw;
+    }
+
+    if (returnDate == null) {
+      return false;
+    }
+
+    return DateTime.now().isAfter(returnDate);
   }
 
   Widget _buildActionCard(

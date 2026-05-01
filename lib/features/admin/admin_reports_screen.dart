@@ -24,15 +24,13 @@ class AdminReportsScreen extends StatelessWidget {
 
         // Compute stats
         final totalEquipment = items.length;
-        final available = items.where((e) {
-          final status = (e['status'] ?? 'available').toString().toLowerCase();
-          final qty = (e['quantity'] as int?) ?? 0;
-          return status == 'available' && qty > 0;
-        }).length;
-        final borrowed = items.where((e) {
-          final status = (e['status'] ?? '').toString().toLowerCase();
-          return status == 'borrowed' || status == 'issued';
-        }).length;
+        final totalQty = items.fold<int>(0, (sum, e) => sum + ((e['quantity'] as int?) ?? 0));
+        final totalAvailableQty = items.fold<int>(0, (sum, e) {
+          final total = (e['quantity'] as int?) ?? 0;
+          final availableQty = (e['available'] as int?) ?? total;
+          return sum + availableQty.clamp(0, total);
+        });
+        final borrowedQty = (totalQty - totalAvailableQty).clamp(0, totalQty);
 
         // Count by category
         final Map<String, int> byCategory = {};
@@ -40,10 +38,6 @@ class AdminReportsScreen extends StatelessWidget {
           final cat = (item['category'] ?? 'General').toString();
           byCategory[cat] = (byCategory[cat] ?? 0) + 1;
         }
-
-        // Total quantity across all items
-        final totalQty = items.fold<int>(0, (sum, e) => sum + ((e['quantity'] as int?) ?? 0));
-
         return Scaffold(
           appBar: AppBar(
             title: const Text('Reports & Analytics'),
@@ -80,14 +74,14 @@ class AdminReportsScreen extends StatelessWidget {
                     ),
                     _StatCard(
                       icon: Icons.check_circle,
-                      label: 'Available',
-                      value: '$available',
+                      label: 'Available Qty',
+                      value: '$totalAvailableQty',
                       color: Colors.green,
                     ),
                     _StatCard(
                       icon: Icons.assignment_return,
-                      label: 'Borrowed',
-                      value: '$borrowed',
+                      label: 'Borrowed Qty',
+                      value: '$borrowedQty',
                       color: Colors.orange,
                     ),
                     _StatCard(
@@ -145,9 +139,9 @@ class AdminReportsScreen extends StatelessWidget {
                   )
                 else
                   ...items.map((item) {
-                    final status = (item['status'] ?? 'available').toString().toLowerCase();
-                    final isBorrowed = status == 'borrowed' || status == 'issued';
                     final qty = (item['quantity'] as int?) ?? 0;
+                    final availableQty = (item['available'] as int?) ?? qty;
+                    final isBorrowed = availableQty < qty;
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       child: ListTile(
@@ -179,7 +173,7 @@ class AdminReportsScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                isBorrowed ? 'Borrowed' : 'Available',
+                                isBorrowed ? 'Partially Borrowed' : 'Available',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -188,7 +182,7 @@ class AdminReportsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text('Qty: $qty', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text('Avail: $availableQty/$qty', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                           ],
                         ),
                       ),

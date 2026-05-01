@@ -10,6 +10,7 @@ import 'auth/auth_service.dart';
 import 'auth/auth_service_base.dart';
 import 'providers/equipment_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/borrowing_provider.dart';
 import 'core/navigation.dart';
 import 'services/notification_service.dart';
 import 'services/local_notification_service.dart';
@@ -129,12 +130,17 @@ void main() async {
     debugPrint('Warning: LocalNotificationService init failed: $e');
   }
   
-  // Initialize Firebase notifications (Lab 8) and pass navigator key for tap navigation
-  try {
-    await NotificationService.instance.initialize(appNavigatorKey);
-    debugPrint('DEBUG_PROOF: NotificationService.initialize() completed');
-  } catch (e) {
-    debugPrint('Warning: NotificationService init failed: $e');
+  // Initialize Firebase notifications only on platforms that support push setup.
+  // Windows should skip this path entirely to avoid touching unsupported APIs.
+  if (_isMobileTarget) {
+    try {
+      await NotificationService.instance.initialize(appNavigatorKey);
+      debugPrint('DEBUG_PROOF: NotificationService.initialize() completed');
+    } catch (e) {
+      debugPrint('Warning: NotificationService init failed: $e');
+    }
+  } else {
+    debugPrint('DEBUG_PROOF: NotificationService initialization skipped on this platform');
   }
 
   debugPrint('DEBUG_PROOF: runApp() about to execute');
@@ -147,6 +153,9 @@ void main() async {
         ),
         ChangeNotifierProvider.value(
           value: EquipmentProvider.instance,
+        ),
+        ChangeNotifierProvider.value(
+          value: BorrowingProvider.instance,
         ),
         ChangeNotifierProvider(create: (_) => PostProvider()),
         ChangeNotifierProvider(create: (_) => ImageFilesProvider()),

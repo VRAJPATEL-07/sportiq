@@ -26,7 +26,7 @@ class NotificationService {
   NotificationService._private();
   static final NotificationService instance = NotificationService._private();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? _messaging;
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
@@ -47,6 +47,8 @@ class NotificationService {
       _initialized = true;
       return;
     }
+
+    _messaging ??= FirebaseMessaging.instance;
 
     // Setup local notifications (Android and iOS)
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -72,7 +74,7 @@ class NotificationService {
     // Request notification permissions (iOS/macOS)
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      await _messaging.requestPermission(alert: true, badge: true, sound: true);
+      await _messaging!.requestPermission(alert: true, badge: true, sound: true);
     }
 
     // Foreground message handler: show a local notification
@@ -221,7 +223,8 @@ class NotificationService {
   Future<String?> getFCMToken() async {
     if (!_supportsPushSetup) return null;
     try {
-      final token = await _messaging.getToken();
+      _messaging ??= FirebaseMessaging.instance;
+      final token = await _messaging!.getToken();
       debugPrint('FCM Token: $token');
       return token;
     } catch (e) {

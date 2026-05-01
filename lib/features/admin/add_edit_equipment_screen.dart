@@ -224,7 +224,7 @@ class _AddEditEquipmentScreenState extends State<AddEditEquipmentScreen> {
               TextFormField(
                 controller: _penaltyController,
                 decoration: const InputDecoration(
-                  labelText: "Penalty per Day (\$)",
+                  labelText: "Penalty per Day (₹)",
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.attach_money),
                 ),
