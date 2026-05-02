@@ -25,6 +25,27 @@ class AppNotification {
     this.isRead = false,
   });
 
+  /// Create AppNotification from Firestore document
+  factory AppNotification.fromFirestore(String id, Map<String, dynamic> data) {
+    return AppNotification(
+      id: id,
+      title: data['title'] ?? 'Notification',
+      message: data['message'] ?? '',
+      timestamp: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+      isRead: data['read'] ?? data['isRead'] ?? false,
+    );
+  }
+
+  /// Convert to map for Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'message': message,
+      'createdAt': timestamp,
+      'read': isRead,
+    };
+  }
+
   /// Create a copy of this notification with modified fields
   AppNotification copyWith({
     String? id,

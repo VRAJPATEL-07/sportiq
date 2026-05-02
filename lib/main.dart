@@ -145,10 +145,6 @@ void main() async {
 
   debugPrint('DEBUG_PROOF: runApp() about to execute');
 
-  // Start Firestore equipment listener immediately so real-time updates
-  // are active from the very beginning (e.g. dashboard, QR scan, etc.)
-  EquipmentProvider.instance.ensureListening();
-
   runApp(
     MultiProvider(
       providers: [

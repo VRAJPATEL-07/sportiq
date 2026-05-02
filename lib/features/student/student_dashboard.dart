@@ -25,14 +25,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
   void initState() {
     super.initState();
     
-    // Start notification timer when student dashboard is loaded
+    // Initialize real-time data when student dashboard is loaded
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
-        context.read<NotificationProvider>().startNotificationTimer();
         final auth = context.read<IAuthService>();
         final userId = auth.current.userId;
         if (userId != null && userId.isNotEmpty) {
+          // Initialize real-time listeners
+          context.read<NotificationProvider>().initializeForUser(userId);
           context.read<BorrowingProvider>().initializeForUser(userId);
+          // Ensure equipment listener is active
+          context.read<EquipmentProvider>().ensureListening();
         }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -47,8 +50,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   @override
   void dispose() {
-    // Stop notification timer when leaving the dashboard
-    context.read<NotificationProvider>().stopNotificationTimer();
+    // Note: We don't stop the notification listener here so it continues
+    // to track unread counts even if we go to other screens
     super.dispose();
   }
 

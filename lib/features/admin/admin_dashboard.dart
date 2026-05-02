@@ -24,18 +24,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
     super.initState();
     _recentBorrows = EquipmentProvider.instance.borrowRecordsStream(limit: 12);
 
-    // Start notification timer when admin dashboard is loaded
+    // Initialize real-time data when admin dashboard is loaded
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
-        context.read<NotificationProvider>().startNotificationTimer();
+        final auth = context.read<IAuthService>();
+        final userId = auth.current.userId;
+        if (userId != null && userId.isNotEmpty) {
+          // Initialize real-time notification listener
+          context.read<NotificationProvider>().initializeForUser(userId);
+          // Ensure equipment listener is active
+          context.read<EquipmentProvider>().ensureListening();
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    // Stop notification timer when leaving the dashboard
-    context.read<NotificationProvider>().stopNotificationTimer();
+    // Notifications continue in background
     super.dispose();
   }
 

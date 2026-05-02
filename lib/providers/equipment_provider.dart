@@ -29,12 +29,18 @@ class EquipmentProvider extends ChangeNotifier {
   String? get error => _error;
 
   void ensureListening() {
-    if (_started) return;
+    // If already listening and no error, do nothing.
+    // If we have an error (like permission-denied from initial boot), allow retrying.
+    if (_started && _error == null) return;
+    
+    _sub?.cancel();
     _started = true;
+    _error = null;
     try {
       _listen();
     } catch (e) {
       _started = false;
+      _error = 'Initialization failed: $e';
       debugPrint('❌ EquipmentProvider listen failed: $e');
     }
   }

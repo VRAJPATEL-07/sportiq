@@ -134,6 +134,21 @@ class BorrowingProvider extends ChangeNotifier {
           'status': remaining > 0 ? 'available' : 'borrowed',
           'updatedAt': FieldValue.serverTimestamp(),
         });
+
+        // Add a notification for the user
+        final notificationRef = _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('notifications')
+            .doc();
+        transaction.set(notificationRef, {
+          'title': 'Equipment Borrowed',
+          'message': 'You have successfully borrowed $quantity unit(s) of $equipmentName.',
+          'type': 'borrow',
+          'equipmentName': equipmentName,
+          'createdAt': FieldValue.serverTimestamp(),
+          'read': false,
+        });
       });
 
       debugPrint('✅ Equipment borrowed: $equipmentName by $userName');
@@ -209,6 +224,21 @@ class BorrowingProvider extends ChangeNotifier {
             });
           }
         }
+
+        // Add a return notification
+        final notificationRef = _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('notifications')
+            .doc();
+        batch.set(notificationRef, {
+          'title': 'Equipment Returned',
+          'message': 'You have successfully returned $quantity unit(s) of ${topData['equipmentName'] ?? 'equipment'}.',
+          'type': 'return',
+          'equipmentName': topData['equipmentName'],
+          'createdAt': FieldValue.serverTimestamp(),
+          'read': false,
+        });
 
         await batch.commit();
       }
