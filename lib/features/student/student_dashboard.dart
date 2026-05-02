@@ -7,6 +7,9 @@ import '../../auth/auth_service_base.dart';
 import '../../providers/borrowing_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification_bell_button.dart';
+import '../../core/themes/app_colors.dart';
+import '../../widgets/glass_container.dart';
+import '../../providers/equipment_provider.dart';
 
 class StudentDashboard extends StatefulWidget {
   final VoidCallback? onToggleTheme;
@@ -52,46 +55,40 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
-    final colorOnPrimary = Theme.of(context).colorScheme.onPrimary;
     final userId = auth.current.userId;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("Student Dashboard"),
+        title: const Text(
+          "DASHBOARD",
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 4,
+          ),
+        ),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           const NotificationBellButton(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Center(
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  backgroundColor: Colors.transparent,
-                ),
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
-                icon: Icon(Icons.school, size: 18, color: colorOnPrimary),
-                label: Text('Student', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorOnPrimary)),
-              ),
-            ),
-          ),
           IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Profile',
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
-            },
+            icon: const Icon(Icons.account_circle_outlined, color: AppColors.primary),
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
         ],
       ),
       drawer: Drawer(
+        backgroundColor: AppColors.surfaceLow,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                border: Border(bottom: BorderSide(color: AppColors.primary, width: 0.5)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -100,10 +97,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.person, size: 40, color: Colors.blue),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primary,
+                        ),
+                        child: const CircleAvatar(
+                          radius: 26,
+                          backgroundColor: AppColors.background,
+                          child: Icon(Icons.bolt_rounded, size: 30, color: AppColors.primary),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -113,31 +117,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
                           children: [
                             Text(
                               auth.current.displayName ?? 'Student',
-                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: AppColors.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               auth.current.email ?? 'student@sportiq.com',
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      auth.current.role,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
                   ),
                 ],
               ),
@@ -186,7 +178,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Logout', style: TextStyle(color: Colors.red)),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(context); // close drawer
                 showDialog(
                   context: context,
                   builder: (BuildContext dialogContext) => AlertDialog(
@@ -202,21 +194,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       ),
                       ElevatedButton(
                         onPressed: () async {
-                          Navigator.pop(dialogContext);
-                          await auth.logout();
+                          Navigator.pop(dialogContext); // close dialog
+                          // Navigate to login FIRST, clearing entire stack,
+                          // THEN sign out. This prevents Consumer rebuilds
+                          // from seeing stale role and redirecting to /unauthorized.
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('You have been logged out successfully'),
-                              backgroundColor: Colors.green,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                          Future.delayed(const Duration(milliseconds: 800), () {
-                            if (mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                            }
-                          });
+                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                          await auth.logout();
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                         child: const Text('Logout'),
@@ -407,8 +391,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, '/equipment'),
-        icon: const Icon(Icons.search),
-        label: const Text('Browse Equipment'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.black,
+        icon: const Icon(Icons.qr_code_scanner_rounded),
+        label: const Text('SCAN EQUIPMENT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
       ),
     );
   }
@@ -419,39 +405,33 @@ class _StudentDashboardState extends State<StudentDashboard> {
     required IconData icon,
     required Color color,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color.withValues(alpha: 0.08), color.withValues(alpha: 0.02)],
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      opacity: 0.1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.onSurfaceVariant,
+              letterSpacing: 1,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color),
-            ),
-            const SizedBox(height: 4),
-            Text(title, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -485,58 +465,38 @@ class _StudentDashboardState extends State<StudentDashboard> {
       Color? color,
       String? subtitle,
     }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.97, end: 1.0),
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOut,
-      builder: (context, scale, child) {
-        final cardColor = color ?? Theme.of(context).primaryColor;
-        return Transform.scale(
-          scale: scale,
-          child: Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: cardColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(icon, size: 44, color: cardColor),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ],
-                ),
+    final cardColor = color ?? AppColors.primary;
+    return InkWell(
+      onTap: onTap,
+      child: GlassContainer(
+        opacity: 0.05,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: cardColor),
+            const SizedBox(height: 12),
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.onSurface,
+                letterSpacing: 1,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        );
-      },
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 9, color: AppColors.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

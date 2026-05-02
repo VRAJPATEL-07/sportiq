@@ -57,6 +57,17 @@ class _SportiQAppState extends State<SportiQApp> {
         // Role guard helper
         // Debug: log current auth state when routing
         debugPrint('DEBUG: Routing check - current auth state: userId=${auth.current.userId} email=${auth.current.email} displayName=${auth.current.displayName} role=${auth.current.role} loggedIn=${auth.current.loggedIn}');
+
+        // If we are in the middle of logging out, allow /login route and
+        // redirect everything else to /login. This prevents stale guards
+        // from showing the unauthorized page.
+        if (auth.current.loggingOut) {
+          if (settings.name == '/login') {
+            return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
+          }
+          return MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: _toggleTheme));
+        }
+
         final requiresAdmin = <String>{'/admin', '/add_equipment', '/manage_users', '/reports'};
         final requiresStudent = <String>{'/student', '/my_borrowed', '/booking_history'};
         final requiresLogin = <String>{'/equipment', '/scan', '/equipment_detail', '/borrow_confirmation', '/borrow_form', '/penalty_details', '/profile', '/notifications', '/booking_history'};

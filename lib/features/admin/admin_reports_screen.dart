@@ -12,25 +12,27 @@ class AdminReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context, listen: false);
 
-    // Guard: only admins
-    if (auth.current.role != 'admin') {
-      Future.microtask(() => Navigator.pushReplacementNamed(context, '/unauthorized'));
-      return const SizedBox.shrink();
+    // Guard: if logging out or not admin, show a safe fallback
+    if (auth.current.loggingOut || auth.current.role != 'admin') {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Consumer<EquipmentProvider>(
       builder: (context, provider, _) {
         final items = provider.items;
 
+        int effectiveAvail(Map<String, dynamic> e) {
+          final total = (e['quantity'] as int?) ?? 0;
+          final availableQty = (e['available'] as int?) ?? total;
+          return availableQty.clamp(0, total);
+        }
+
         // Compute stats
         final totalEquipment = items.length;
         final totalQty = items.fold<int>(0, (sum, e) => sum + ((e['quantity'] as int?) ?? 0));
-        final totalAvailableQty = items.fold<int>(0, (sum, e) {
-          final total = (e['quantity'] as int?) ?? 0;
-          final availableQty = (e['available'] as int?) ?? total;
-          return sum + availableQty.clamp(0, total);
-        });
+        final totalAvailableQty = items.fold<int>(0, (sum, e) => sum + effectiveAvail(e));
         final borrowedQty = (totalQty - totalAvailableQty).clamp(0, totalQty);
+        final skusWithStock = items.where((e) => effectiveAvail(e) > 0).length;
 
         // Count by category
         final Map<String, int> byCategory = {};
@@ -38,6 +40,7 @@ class AdminReportsScreen extends StatelessWidget {
           final cat = (item['category'] ?? 'General').toString();
           byCategory[cat] = (byCategory[cat] ?? 0) + 1;
         }
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Reports & Analytics'),
@@ -46,13 +49,11 @@ class AdminReportsScreen extends StatelessWidget {
           ),
           body: RefreshIndicator(
             onRefresh: () async {
-              // EquipmentProvider listens to Firestore in real-time, no manual refresh needed
               await Future.delayed(const Duration(milliseconds: 300));
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Summary cards row
                 const Text(
                   'Overview',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -86,15 +87,14 @@ class AdminReportsScreen extends StatelessWidget {
                     ),
                     _StatCard(
                       icon: Icons.category,
-                      label: 'Total Qty',
-                      value: '$totalQty',
+                      label: 'In-stock SKUs',
+                      value: '$skusWithStock',
                       color: Colors.purple,
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Equipment by category
                 const Text(
                   'Equipment by Category',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -124,7 +124,6 @@ class AdminReportsScreen extends StatelessWidget {
                       )),
                 const SizedBox(height: 24),
 
-                // Full equipment list with status
                 const Text(
                   'Equipment Status',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -139,19 +138,27 @@ class AdminReportsScreen extends StatelessWidget {
                   )
                 else
                   ...items.map((item) {
-                    final qty = (item['quantity'] as int?) ?? 0;
-                    final availableQty = (item['available'] as int?) ?? qty;
-                    final isBorrowed = availableQty < qty;
+                    final q = (item['quantity'] as int?) ?? 0;
+                    final av = effectiveAvail(item);
+                    final isBorrowed = q > 0 && av <= 0;
+                    final partial = q > 0 && av > 0 && av < q;
+
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: isBorrowed
                               ? Colors.orange.withValues(alpha: 0.15)
-                              : Colors.green.withValues(alpha: 0.15),
+                              : (partial
+                                  ? Colors.amber.withValues(alpha: 0.15)
+                                  : Colors.green.withValues(alpha: 0.15)),
                           child: Icon(
-                            isBorrowed ? Icons.assignment_return : Icons.check_circle,
-                            color: isBorrowed ? Colors.orange : Colors.green,
+                            isBorrowed
+                                ? Icons.assignment_return
+                                : (partial ? Icons.pie_chart : Icons.check_circle),
+                            color: isBorrowed
+                                ? Colors.orange
+                                : (partial ? Colors.amber.shade800 : Colors.green),
                             size: 20,
                           ),
                         ),
@@ -169,20 +176,26 @@ class AdminReportsScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: isBorrowed
                                     ? Colors.orange.withValues(alpha: 0.2)
-                                    : Colors.green.withValues(alpha: 0.2),
+                                    : (partial
+                                        ? Colors.amber.withValues(alpha: 0.2)
+                                        : Colors.green.withValues(alpha: 0.2)),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                isBorrowed ? 'Partially Borrowed' : 'Available',
+                                isBorrowed
+                                    ? 'All on loan'
+                                    : (partial ? 'Partially Borrowed' : 'Available'),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isBorrowed ? Colors.orange.shade700 : Colors.green.shade700,
+                                  color: isBorrowed
+                                      ? Colors.orange.shade700
+                                      : (partial ? Colors.amber.shade900 : Colors.green.shade700),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text('Avail: $availableQty/$qty', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text('Avail: $av/$q', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                           ],
                         ),
                       ),

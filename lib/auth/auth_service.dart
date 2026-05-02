@@ -48,40 +48,38 @@ class AuthService extends IAuthService {
       return;
     }
 
-    // Fetch role from Firestore users collection
+    // Fetch user details from Firestore users collection
     try {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       String role = 'student';
+      String displayName = user.displayName ?? 'User';
+      
       if (doc.exists) {
         final data = doc.data();
-        if (data != null && data['role'] != null) {
-          role = data['role'] as String;
-          debugPrint('DEBUG: User role fetched from Firestore: $role');
-        } else {
-          debugPrint('DEBUG: User document exists but has no role field. Defaulting to student.');
+        if (data != null) {
+          role = data['role'] as String? ?? 'student';
+          if (data['name'] != null) {
+            displayName = data['name'] as String;
+          }
+          debugPrint('DEBUG: User profile fetched from Firestore: $role, $displayName');
         }
       } else {
         debugPrint('DEBUG: User document not found for ${user.uid}. Creating default student record.');
         try {
           await _firestore.collection('users').doc(user.uid).set({
             'email': user.email ?? '',
-            'name': user.displayName ?? 'User',
+            'name': displayName,
             'role': 'student',
             'createdAt': FieldValue.serverTimestamp(),
             'status': 'active',
           });
-          role = 'student';
-          // Ensure role is set in Firestore
-          await _firestore.collection('users').doc(user.uid).update({'role': 'student'});
         } catch (e) {
           debugPrint('ERROR: Could not create user document: $e');
-          // Still continue with student role even if document creation fails
-          role = 'student';
         }
       }
 
       // Ensure displayName is never empty - use email prefix as fallback
-      final displayName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+      displayName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
           ? user.displayName!.trim()
           : ((user.email?.isNotEmpty ?? false) ? user.email!.split('@').first.toUpperCase() : 'User');
       
@@ -242,10 +240,19 @@ class AuthService extends IAuthService {
 
   @override
   Future<void> logout() async {
+    debugPrint('DEBUG: Logout initiated — setting loggingOut state');
+    // Signal that we're actively logging out so UI guards don't redirect
+    // to unauthorized during the transition.
+    _state = AuthState.loggingOutState;
+    _controller.add(_state);
+    notifyListeners();
+
     await _auth.signOut();
+
     _state = AuthState.signedOut;
     _controller.add(_state);
     notifyListeners();
+    debugPrint('DEBUG: Logout complete — state is now signedOut');
   }
 
   @override

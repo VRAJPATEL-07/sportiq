@@ -1,5 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/auth_service_base.dart';
 import '../../providers/borrowing_provider.dart';
 
@@ -11,7 +14,6 @@ class BorrowEquipmentForm extends StatefulWidget {
   @override
   State<BorrowEquipmentForm> createState() => _BorrowEquipmentFormState();
 }
-
 
 class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
   final _formKey = GlobalKey<FormState>();
@@ -31,7 +33,12 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
 
   int _getEquipmentAvailable() {
     final eq = widget.equipment;
-    if (eq is Map) return (eq['available'] ?? 0) as int;
+    if (eq is Map) {
+      final q = (eq['quantity'] as int?) ?? 0;
+      final a = eq['available'];
+      if (a is int) return a;
+      return q;
+    }
     return eq.available;
   }
 
@@ -46,6 +53,18 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
     super.initState();
     _borrowDate = DateTime.now();
     _returnDate = DateTime.now().add(const Duration(days: 1));
+
+    // Ensure the borrowing listener is active even if coming from QR scan
+    // (the dashboard may not have been visited yet)
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+      final auth = Provider.of<IAuthService>(context, listen: false);
+      final userId = auth.current.userId;
+      if (userId != null && userId.isNotEmpty) {
+        Provider.of<BorrowingProvider>(context, listen: false)
+            .initializeForUser(userId);
+      }
+    });
   }
 
   void _selectBorrowDate() async {
@@ -189,21 +208,18 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
       final equipmentId = widget.equipment['id']?.toString() ?? '';
 
       final userId = auth.current.userId;
-      debugPrint('🔍 DEBUG _borrowAndSave: userId=$userId, displayName=${auth.current.displayName}, email=${auth.current.email}');
       
       if (userId == null || userId.isEmpty || equipmentId.isEmpty) {
         throw Exception('Missing user ID or equipment ID');
       }
 
-      // CRITICAL: Ensure userName is always set - NEVER fallback to "Unknown User"
+      // Ensure userName is always set
       final userName = (auth.current.displayName != null && auth.current.displayName!.trim().isNotEmpty)
           ? auth.current.displayName!.trim()
           : (auth.current.email != null && auth.current.email!.isNotEmpty 
               ? auth.current.email!.split('@').first.toUpperCase() 
               : 'User');
       
-      debugPrint('✅ userName to be written: $userName');
-
       // Get penalty from equipment data
       double? penalty;
       if (widget.equipment['penalty'] != null) {
@@ -211,7 +227,6 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
       }
 
       // Save borrowing record to Firestore
-      debugPrint('📝 Calling borrowEquipment with userName=$userName');
       await borrowingProvider.borrowEquipment(
         userId: userId,
         userName: userName,
@@ -224,13 +239,10 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
         penalty: penalty,
       );
       
-      debugPrint('✅ Borrow successful, showing success dialog');
-
       if (mounted) {
         _showSuccessDialog();
       }
     } catch (e) {
-      debugPrint('❌ Error in _borrowAndSave: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -242,16 +254,17 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
       }
     }
   }
+
   void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 28),
-            const SizedBox(width: 12),
-            const Text('Borrow Successful'),
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            SizedBox(width: 12),
+            Text('Borrow Successful'),
           ],
         ),
         content: Column(
@@ -277,8 +290,6 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Text('Ref #: BRW-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
-                  const SizedBox(height: 4),
                   Text('Equipment: ${_getEquipmentName()}'),
                   const SizedBox(height: 4),
                   Text('Quantity: $_quantity'),
@@ -448,7 +459,7 @@ class _BorrowEquipmentFormState extends State<BorrowEquipmentForm> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: _borrowDuration,
+                  value: _borrowDuration,
                   items: ['1 Day', '3 Days', '1 Week', '2 Weeks']
                       .map((duration) => DropdownMenuItem(
                             value: duration,

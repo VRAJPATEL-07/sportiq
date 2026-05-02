@@ -79,10 +79,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
-    // Guard: ensure only admins can view this screen
-    if (auth.current.role != 'admin') {
-      Future.microtask(() => Navigator.pushReplacementNamed(context, '/unauthorized'));
-      return const SizedBox.shrink();
+    // If logging out or not admin, show a safe fallback
+    if (auth.current.loggingOut || (!auth.current.loggedIn && auth.current.role == 'guest')) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -240,18 +239,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                         onPressed: () async {
                           Navigator.pop(dialogContext);
-                          await auth.logout();
+                          // Navigate FIRST, then logout
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Logged out successfully'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            if (mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                            }
+                            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                           }
+                          await auth.logout();
                         },
                         child: const Text('Logout'),
                       ),

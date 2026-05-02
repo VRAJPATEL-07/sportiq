@@ -17,12 +17,16 @@ class _MyBorrowedItemsScreenState extends State<MyBorrowedItemsScreen> {
   void initState() {
     super.initState();
     // Initialize borrowing provider for current user
-    final auth = Provider.of<IAuthService>(context, listen: false);
-    final borrowingProvider = Provider.of<BorrowingProvider>(context, listen: false);
-    final userId = auth.current.userId;
-    if (userId != null && userId.isNotEmpty) {
-      borrowingProvider.initializeForUser(userId);
-    }
+    Future.delayed(Duration.zero, () {
+      if (mounted) {
+        final auth = Provider.of<IAuthService>(context, listen: false);
+        final borrowingProvider = Provider.of<BorrowingProvider>(context, listen: false);
+        final userId = auth.current.userId;
+        if (userId != null && userId.isNotEmpty) {
+          borrowingProvider.initializeForUser(userId);
+        }
+      }
+    });
   }
 
   @override

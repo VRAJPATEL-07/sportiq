@@ -70,6 +70,7 @@ class EquipmentProvider extends ChangeNotifier {
         'name': name,
         'category': category,
         'quantity': quantity,
+        'available': quantity,
         'status': status,
         if (description != null && description.isNotEmpty) 'description': description,
         if (penalty != null) 'penalty': penalty,
@@ -83,7 +84,7 @@ class EquipmentProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateEquipment({required String id, String? name, String? category, int? quantity, String? status, String? description, double? penalty}) async {
+  Future<void> updateEquipment({required String id, String? name, String? category, int? quantity, int? available, String? status, String? description, double? penalty}) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -91,6 +92,7 @@ class EquipmentProvider extends ChangeNotifier {
       if (name != null) data['name'] = name;
       if (category != null) data['category'] = category;
       if (quantity != null) data['quantity'] = quantity;
+      if (available != null) data['available'] = available;
       if (status != null) data['status'] = status;
       if (description != null) data['description'] = description;
       if (penalty != null) data['penalty'] = penalty;
@@ -218,6 +220,88 @@ class EquipmentProvider extends ChangeNotifier {
   /// display recent scans.
   Stream<List<Map<String, dynamic>>> scanHistoryStream({int limit = 50}) {
     return _firestore.collection('scan_history').orderBy('timestamp', descending: true).limit(limit).snapshots().map((snap) {
+      return snap.docs.map((d) {
+        final m = Map<String, dynamic>.from(d.data());
+        m['id'] = d.id;
+        return m;
+      }).toList();
+    });
+  }
+
+  /// Persists a borrow: decrements [available] on the equipment doc and creates
+  /// a row in [borrow_records]. Admin UIs listen to the same collections for live updates.
+  Future<String> recordBorrow({
+    required String equipmentDocId,
+    required int quantity,
+    required String userId,
+    String? userEmail,
+    String? displayName,
+    required DateTime borrowDate,
+    required DateTime returnDate,
+    String? purpose,
+  }) async {
+    if (quantity < 1) {
+      throw ArgumentError('quantity must be at least 1');
+    }
+    final borrowDoc = _firestore.collection('borrow_records').doc();
+    await _firestore.runTransaction((txn) async {
+      final ref = _firestore.collection('equipment').doc(equipmentDocId);
+      final snap = await txn.get(ref);
+      if (!snap.exists) {
+        throw StateError('Equipment not found');
+      }
+      final raw = snap.data()!;
+      final totalQty = (raw['quantity'] as num?)?.toInt() ?? 0;
+      final storedAvail = raw['available'];
+      int avail = storedAvail is num ? storedAvail.toInt() : totalQty;
+      if (avail > totalQty) avail = totalQty;
+      if (avail < quantity) {
+        throw StateError('Not enough units available (have $avail, need $quantity)');
+      }
+      avail -= quantity;
+      final statusOut = avail <= 0 ? 'borrowed' : 'available';
+      txn.update(ref, {
+        'available': avail,
+        'status': statusOut,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      txn.set(borrowDoc, {
+        'equipmentId': equipmentDocId,
+        'equipmentName': raw['name'],
+        'quantity': quantity,
+        'borrowedBy': userId,
+        'borrowedByEmail': userEmail,
+        'borrowedByName': displayName,
+        'borrowDate': Timestamp.fromDate(borrowDate),
+        'returnDate': Timestamp.fromDate(returnDate),
+        'purpose': purpose,
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return borrowDoc.id;
+  }
+
+  /// Live stream of borrow rows for a specific user (newest first).
+  Stream<List<Map<String, dynamic>>> getUserBorrowRecordsStream(String userId, {int limit = 50}) {
+    return _firestore
+        .collection('borrow_records')
+        .where('borrowedBy', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) {
+      return snap.docs.map((d) {
+        final m = Map<String, dynamic>.from(d.data());
+        m['id'] = d.id;
+        return m;
+      }).toList();
+    });
+  }
+
+  /// Live stream of borrow rows for admin dashboards (newest first).
+  Stream<List<Map<String, dynamic>>> borrowRecordsStream({int limit = 50}) {
+    return _firestore.collection('borrow_records').orderBy('createdAt', descending: true).limit(limit).snapshots().map((snap) {
       return snap.docs.map((d) {
         final m = Map<String, dynamic>.from(d.data());
         m['id'] = d.id;

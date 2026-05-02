@@ -195,17 +195,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                           onPressed: () async {
                             Navigator.pop(dialogContext);
-                            await auth.logout();
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('You have been logged out successfully'),
-                                backgroundColor: Colors.green,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                            // Navigate FIRST, then logout
                             if (!mounted) return;
                             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                            await auth.logout();
                           },
                         child: const Text('Logout'),
                       ),

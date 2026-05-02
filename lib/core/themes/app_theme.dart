@@ -1,59 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 
 final ThemeData lightTheme = ThemeData(
-  primarySwatch: Colors.blue,
+  useMaterial3: true,
   brightness: Brightness.light,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.primary,
+    primary: AppColors.primary,
+    secondary: AppColors.secondary,
+    surface: Colors.white,
+    onSurface: Colors.black87,
+  ),
   scaffoldBackgroundColor: Colors.grey[50],
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.blue,
-    foregroundColor: Colors.white,
-    elevation: 4,
+  textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.light().textTheme).copyWith(
+    bodyLarge: GoogleFonts.inter(color: Colors.black87),
+    bodyMedium: GoogleFonts.inter(color: Colors.black54),
+  ),
+  cardTheme: CardThemeData(
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    color: Colors.white,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.blue,
-      foregroundColor: Colors.white,
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.black,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
     ),
-  ),
-  textTheme: const TextTheme(
-    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-    bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
-    bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
-  ),
-  drawerTheme: const DrawerThemeData(
-    backgroundColor: Colors.white,
   ),
 );
 
 final ThemeData darkTheme = ThemeData(
-  primarySwatch: Colors.blue,
+  useMaterial3: true,
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: Colors.grey.shade900,
-  appBarTheme: AppBarTheme(
-    backgroundColor: Colors.grey.shade800,
-    foregroundColor: Colors.white,
-    elevation: 4,
+  colorScheme: const ColorScheme.dark(
+    primary: AppColors.primary,
+    secondary: AppColors.secondary,
+    surface: AppColors.surfaceMedium,
+    onSurface: AppColors.onSurface,
+  ),
+  scaffoldBackgroundColor: AppColors.background,
+  textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.dark().textTheme).copyWith(
+    bodyLarge: GoogleFonts.inter(color: AppColors.onSurface),
+    bodyMedium: GoogleFonts.inter(color: AppColors.onSurfaceVariant),
+  ),
+  cardTheme: CardThemeData(
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    color: AppColors.surfaceLow,
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: AppColors.background,
+    foregroundColor: AppColors.onSurface,
+    elevation: 0,
+    centerTitle: true,
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.blue,
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.black,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
     ),
   ),
-  textTheme: const TextTheme(
-    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-    bodyLarge: TextStyle(fontSize: 16, color: Colors.white),
-    bodyMedium: TextStyle(fontSize: 14, color: Colors.white70),
-  ),
-  drawerTheme: DrawerThemeData(
-    backgroundColor: Colors.grey.shade800,
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: AppColors.surfaceLow,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+    ),
   ),
 );

@@ -41,20 +41,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             onPressed: () async {
               Navigator.pop(dialogContext);
               final auth = Provider.of<IAuthService>(context, listen: false);
-              await auth.logout();
+              // Navigate FIRST to clear the stack, THEN sign out.
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('You have been logged out successfully'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              Future.delayed(const Duration(milliseconds: 800), () {
-                if (mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                }
-              });
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              await auth.logout();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

@@ -1,8 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../auth/auth_service_base.dart';
+import '../../providers/equipment_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification_bell_button.dart';
 import 'borrowing_notifications_screen.dart';
@@ -15,10 +17,13 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
+  late final Stream<List<Map<String, dynamic>>> _recentBorrows;
+
   @override
   void initState() {
     super.initState();
-    
+    _recentBorrows = EquipmentProvider.instance.borrowRecordsStream(limit: 12);
+
     // Start notification timer when admin dashboard is loaded
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
@@ -38,10 +43,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     final auth = Provider.of<IAuthService>(context);
     final colorOnPrimary = Theme.of(context).colorScheme.onPrimary;
-    // Guard: ensure only admins can view this screen
-    if (auth.current.role != 'admin') {
-      Future.microtask(() => Navigator.pushReplacementNamed(context, '/unauthorized'));
-      return const SizedBox.shrink();
+    // If we're logging out, don't render — navigation is already happening
+    if (auth.current.loggingOut || (!auth.current.loggedIn && auth.current.role == 'guest')) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
       appBar: AppBar(
@@ -178,11 +182,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Logout', style: TextStyle(color: Colors.red)),
               onTap: () async {
-                Navigator.pop(context);
+                Navigator.pop(context); // close drawer
+                // Navigate to login FIRST, clearing the entire stack,
+                // THEN sign out. This prevents the Consumer rebuild from
+                // triggering the role guard while we're still on /admin.
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                 await auth.logout();
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                }
               },
             ),
           ],
@@ -202,15 +207,136 @@ class _AdminDashboardState extends State<AdminDashboard> {
               "Manage equipment, students, and system settings.",
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
-            const SizedBox(height: 30),
-            const Text(
-              "Management Options",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
             const SizedBox(height: 20),
             Expanded(
               child: ListView(
                 children: [
+                  Consumer<EquipmentProvider>(
+                    builder: (context, eq, _) {
+                      final items = eq.items;
+                      final totalSkus = items.length;
+                      final totalUnits = items.fold<int>(0, (s, e) => s + ((e['quantity'] as int?) ?? 0));
+                      var availUnits = 0;
+                      for (final e in items) {
+                        final q = (e['quantity'] as int?) ?? 0;
+                        final a = e['available'];
+                        final av = a is int ? (a > q ? q : a) : q;
+                        availUnits += av;
+                      }
+                      final onLoan = totalUnits - availUnits;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.sync, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Live inventory',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 8,
+                                children: [
+                                  _buildLiveStatChip('SKUs', '$totalSkus', Colors.blue),
+                                  _buildLiveStatChip('Total units', '$totalUnits', Colors.indigo),
+                                  _buildLiveStatChip('Available', '$availUnits', Colors.green),
+                                  _buildLiveStatChip('On loan', '$onLoan', Colors.deepOrange),
+                                ],
+                              ),
+                              if (eq.error != null) ...[
+                                const SizedBox(height: 8),
+                                Text(eq.error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const Text(
+                    'Recent borrows',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _recentBorrows,
+                    builder: (context, snap) {
+                      if (snap.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Could not load activity: ${snap.error}',
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                        );
+                      }
+                      if (!snap.hasData || snap.data!.isEmpty) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Text(
+                              'No borrow activity yet. When a student confirms a borrow, it appears here immediately.',
+                              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                            ),
+                          ),
+                        );
+                      }
+                      final rows = snap.data!;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: rows.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, i) {
+                            final r = rows[i];
+                            final name = r['equipmentName']?.toString() ?? 'Item';
+                            final qty = (r['quantity'] as num?)?.toInt() ?? 0;
+                            final who = r['borrowedByName']?.toString() ??
+                                r['borrowedByEmail']?.toString() ??
+                                r['borrowedBy']?.toString() ??
+                                '—';
+                            final created = r['createdAt'];
+                            var when = '—';
+                            if (created is Timestamp) {
+                              final d = created.toDate();
+                              when =
+                                  '${d.day}/${d.month} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+                            }
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.outbox, color: Colors.deepOrange),
+                              title: Text(
+                                '$name × $qty',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                '$who • $when',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const Text(
+                    "Management Options",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
                   _buildManagementTile(
                     context,
                     icon: Icons.inventory,
@@ -282,6 +408,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
         },
         tooltip: 'Add Equipment',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildLiveStatChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 16)),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+        ],
       ),
     );
   }
